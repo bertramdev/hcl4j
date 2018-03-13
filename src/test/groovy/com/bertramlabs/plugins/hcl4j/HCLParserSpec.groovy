@@ -204,4 +204,30 @@ escapedInterpolation = "$${var.firstName}"
 		results.variable.escapedInterpolation == '$${var.firstName}'
 	}
 
+
+	void "should handle multiline string"() {
+		given:
+
+		def hcl = '''
+variable {
+description = <<EOL
+This is a cool String
+I love multiple lines
+Don't you?
+EOL
+}
+
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.containsKey('variable') == true
+		results.variable.description == '''This is a cool String
+I love multiple lines
+Don't you?
+'''
+	}
+
 }
