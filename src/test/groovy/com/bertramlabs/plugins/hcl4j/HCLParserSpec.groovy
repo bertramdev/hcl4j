@@ -230,4 +230,20 @@ Don't you?
 '''
 	}
 
+
+	void "it should handle single line blocks that are empty"() {
+		given:
+
+		def hcl = '''
+variable {}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.containsKey('variable') == true
+
+	}
+
 }

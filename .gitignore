@@ -2,5 +2,6 @@ build/
 .gradle/
 *.iws
 *.ipr
+.DS_Store
 *.iml
 gradle.properties
