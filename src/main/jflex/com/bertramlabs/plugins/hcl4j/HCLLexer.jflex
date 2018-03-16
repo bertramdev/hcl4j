@@ -75,6 +75,21 @@ HCLParserException
   }
 
 
+  private Symbol exitAttribute() {
+  	if(currentBlock == null) {
+  		yybegin(YYINITIAL);
+  		Symbol result = attribute;
+  		attribute = null;
+  		return result;
+  	} else {
+  		currentBlock.appendChild(attribute);
+  		attribute = null;
+  		yybegin(HCLINBLOCK);
+  		return null;
+  	}
+  }
+
+
 %}
 
 LineTerminator = \r|\n|\r\n
@@ -149,7 +164,7 @@ AssignmentExpression = [^]
 <YYINITIAL> {
   /* identifiers */ 
   {HCLBlock}        {yybegin(HCLBLOCKHEADER);yypushback(yylength()); }
-
+  {HCLAttribute}	{yybegin(HCLATTRIBUTE);yypushback(yylength()); }
   /* comments */
   {Comment}                      { /* ignore */ }
  
@@ -166,7 +181,7 @@ AssignmentExpression = [^]
 }
 <STRINGDOUBLE> {
 
-  \"                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; currentBlock.appendChild(attribute); attribute = null; yybegin(HCLINBLOCK); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); } }
+  \"                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString()));  Symbol attr = exitAttribute(); if(attr != null) { return attr;} } else { throw new HCLParserException("String block found outside of block or attribute assignment."); } }
   \\\"                           { string.append('\"'); }
   {EscapedInterpolation}         { string.append( yytext() );}
   {InterpolationSyntax}          { string.append(yytext()); yybegin(STRINGINTERPOLATED); }
@@ -175,13 +190,13 @@ AssignmentExpression = [^]
 
 <STRINGSINGLE> {
   [^\n\r\'\\]+                   { string.append( yytext() ); }
-  \'                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; currentBlock.appendChild(attribute); attribute = null; yybegin(HCLINBLOCK); } }
+  \'                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; Symbol attr = exitAttribute(); if(attr != null) { return attr;} } }
   \\'                            { string.append('\''); }
 }
 
 <MULTILINESTRING> {
 	[\r\n]					   { if(isMultiLineFirstNewLine) {isMultiLineFirstNewLine = false; } else {string.append( yytext() );} }
-	[^\n\r]+                   { if(yytext().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; currentBlock.appendChild(attribute); attribute = null; yybegin(HCLINBLOCK); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( yytext() );} }
+	[^\n\r]+                   { if(yytext().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; Symbol attr = exitAttribute(); if(attr != null) { return attr;} } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( yytext() );} }
 }
 
 <STRINGINTERPOLATED> {
@@ -225,7 +240,7 @@ AssignmentExpression = [^]
 
 	{MapKeyDef}                    { yypushback(yylength()); yybegin(HCLMAPKEY); }
 	,							   { /* should probably process this but due to simplicity we dont need to */ }
-	\}							   { if(currentValue.parent != null && currentValue.parent instanceof HCLMap) { currentValue = currentValue.parent; currentMapKey = null; } else if(currentValue.parent != null && currentValue.parent instanceof HCLArray) { yybegin(HCLARRAY); currentValue = currentValue.parent; } else if(attribute != null && currentValue.parent == null) { attribute.setValue(currentValue) ; currentValue = null; currentBlock.appendChild(attribute); attribute = null; yybegin(HCLINBLOCK); }}
+	\}							   { if(currentValue.parent != null && currentValue.parent instanceof HCLMap) { currentValue = currentValue.parent; currentMapKey = null; } else if(currentValue.parent != null && currentValue.parent instanceof HCLArray) { yybegin(HCLARRAY); currentValue = currentValue.parent; } else if(attribute != null && currentValue.parent == null) { attribute.setValue(currentValue) ; currentValue = null; Symbol attr = exitAttribute(); if(attr != null) { return attr;} }}
     {WhiteSpace}                   { /* ignore */ }
 }
 <HCLMAPVALUE> {
@@ -259,7 +274,7 @@ AssignmentExpression = [^]
     	{True}						   { ((HCLArray)currentValue).add(new HCLValue("boolean","true")); }
     	{False}						   { ((HCLArray)currentValue).add(new HCLValue("boolean","false")); }
     	{DigitValue}				   { ((HCLArray)currentValue).add(new HCLValue("number",yytext())); }
-    	\]							   { if(currentValue.parent != null && currentValue.parent instanceof HCLArray) { currentValue = currentValue.parent; } else if(currentValue.parent != null && currentValue.parent instanceof HCLMap) {  currentValue = currentValue.parent; yybegin(HCLMAP); } else if(attribute != null && currentValue.parent == null) { attribute.setValue(currentValue) ; currentValue = null; currentBlock.appendChild(attribute); attribute = null; yybegin(HCLINBLOCK); } }
+    	\]							   { if(currentValue.parent != null && currentValue.parent instanceof HCLArray) { currentValue = currentValue.parent; } else if(currentValue.parent != null && currentValue.parent instanceof HCLMap) {  currentValue = currentValue.parent; yybegin(HCLMAP); } else if(attribute != null && currentValue.parent == null) { attribute.setValue(currentValue) ; currentValue = null; Symbol attr = exitAttribute(); if(attr != null) { return attr;} } }
     	,							   { /* should probably process this but due to simplicity we dont need to */ }
     	{WhiteSpace}                   { /* ignore */ }
 }
@@ -270,9 +285,9 @@ AssignmentExpression = [^]
 	\{							   { currentValue = new HCLMap() ; inMap = true; yybegin(HCLMAP);}
 	\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
 	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2);}
-	{True}						   { attribute.setValue(new HCLValue("boolean","true")) ; currentBlock.appendChild(attribute); yybegin(HCLINBLOCK); attribute = null; }
-	{False}						   { attribute.setValue(new HCLValue("boolean","false")) ; currentBlock.appendChild(attribute); yybegin(HCLINBLOCK); attribute = null; }
-	{DigitValue}					   { attribute.setValue(new HCLValue("number",yytext())) ; currentBlock.appendChild(attribute); yybegin(HCLINBLOCK); attribute = null; }
+	{True}						   { attribute.setValue(new HCLValue("boolean","true")) ; currentBlock.appendChild(attribute); Symbol attr = exitAttribute(); if(attr != null) { return attr;} }
+	{False}						   { attribute.setValue(new HCLValue("boolean","false")) ; currentBlock.appendChild(attribute);  Symbol attr = exitAttribute(); if(attr != null) { return attr;}}
+	{DigitValue}				   { attribute.setValue(new HCLValue("number",yytext())) ; currentBlock.appendChild(attribute);  Symbol attr = exitAttribute(); if(attr != null) { return attr;}}
 	{Comment}                      { /* ignore */ }
 	{WhiteSpace}                   { /* ignore */ }
 

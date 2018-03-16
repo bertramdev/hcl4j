@@ -200,6 +200,9 @@ public class HCLParser {
 			if(currentElement instanceof HCLBlock) {
 				HCLBlock currentBlock = (HCLBlock) currentElement;
 				processBlock(currentBlock,mapPosition);
+			} else if(currentElement instanceof HCLAttribute) {
+				HCLAttribute attr = (HCLAttribute)currentElement;
+				mapPosition.put(attr.getName(),processValue(attr.getValue()));
 			}
 		}
 		return result;

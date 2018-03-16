@@ -246,4 +246,18 @@ variable {}
 
 	}
 
+	void "it should handle root level attributes"() {
+		given:
+
+		def hcl = '''
+foo = "Hello there"
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.foo == "Hello there"
+	}
+
 }
