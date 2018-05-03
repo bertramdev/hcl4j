@@ -128,6 +128,7 @@ HCLAttributeValue = "\"" {HCLDoubleStringCharacters} "\"" | "\'" {HCLSingleStrin
 
 MapKeyDef = {MapKey} ":"
 MapKey = {HCLAttributeName} | "\"" {HCLDoubleStringCharacters} "\""
+MapBlockStart = "{" {WhiteSpaceOpt} {MapKeyDef}
 
 HCLDoubleStringCharacters = {HCLDoubleStringCharacter}*
 HCLSingleStringCharacters = {HCLSingleStringCharacter}*
@@ -282,7 +283,8 @@ AssignmentExpression = [^]
 
 <HCLATTRIBUTEVALUE> {
 	\[                             { currentValue = new HCLArray(); yybegin(HCLARRAY);/* process an array */ }
-	\{							   { currentValue = new HCLMap() ; inMap = true; yybegin(HCLMAP);}
+	{MapBlockStart}							   { currentValue = new HCLMap() ; yypushback(yylength()-1) ; inMap = true; yybegin(HCLMAP);}
+  \{                             {  blockNames = new ArrayList<String>(); blockNames.add(attribute.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
 	\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
 	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2);}
 	{True}						   { attribute.setValue(new HCLValue("boolean","true")) ; currentBlock.appendChild(attribute); Symbol attr = exitAttribute(); if(attr != null) { return attr;} }

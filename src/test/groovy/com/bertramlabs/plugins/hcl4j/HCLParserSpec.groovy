@@ -260,4 +260,25 @@ foo = "Hello there"
 		results.foo == "Hello there"
 	}
 
+
+	void "it should handle values of variables being a block type"() {
+		given:
+
+		def hcl = '''
+variable "images" {
+	type = "map"
+	default = {
+		us-east-1 = "image-1234"
+		us-west-1 = "image-4567"
+	}
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.variable.images.default['us-east-1'] == "image-1234"
+	}
+
 }
