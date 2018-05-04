@@ -204,7 +204,7 @@ AssignmentExpression = [^]
   \}                             { string.append(yytext()); if(interpolatedCurleyBraceCounter > 1) {interpolatedCurleyBraceCounter--;} else { interpolatedCurleyBraceCounter--; yybegin(STRINGDOUBLE);} }
   \{                             { string.append(yytext()); interpolatedCurleyBraceCounter++; }
   \"							 {string.append(yytext());}
-  [^\{\}\n\r\"\\]+                   { string.append( yytext() ); }
+  [^\{\}\"\\]+                   { string.append( yytext() ); }
 }
 
 <HCLBLOCKHEADER> {

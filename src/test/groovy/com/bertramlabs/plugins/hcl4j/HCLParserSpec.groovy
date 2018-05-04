@@ -281,4 +281,88 @@ variable "images" {
 		results.variable.images.default['us-east-1'] == "image-1234"
 	}
 
+	void "it should handle multiline interpolated strings" () {
+		given:
+		def hcl = '''
+variable "instance_image_ocid" {
+type = "map"
+ default {
+   us-phoenix-1 = "ocid1.image.oc1.phx.aaaaaaaasc56hnpnx7swoyd2fw5gyvbn3kcdmqc2guiiuvnztl2erth62xnq"
+   us-ashburn-1 = "ocid1.image.oc1.iad.aaaaaaaaxrqeombwty6jyqgk3fraczdd63bv66xgfsqka4ktr7c57awr3p5a"
+   eu-frankfurt-1 = "ocid1.image.oc1.eu-frankfurt-1.aaaaaaaayxmzu6n5hsntq4wlffpb4h6qh6z3uskpbm5v3v4egqlqvwicfbyq"
+ }
+}
+
+resource "random_integer" "instance_ad_shift" {
+ max = 5
+ min = 0
+}
+
+resource "oci_core_instance" "compute_instances" {
+
+ count = "${var.env["ddr.instance.count"]}"
+
+ availability_domain = "${
+ element(
+   split("|",
+         element(
+           split(",",
+                 var.cloud["oci.network.vcn.subnets"]
+           ),
+         ( random_integer.instance_ad_shift.result + count.index ) % length(
+                       split(",",
+                             var.cloud["oci.network.vcn.subnets"]
+                       )
+                      )
+     )
+   ),
+   0
+ )
+ }"
+ compartment_id = "${var.cloud["oci.compartment.ocid"]}"
+ display_name = "${var.env["name.short"]}-ddr-${count.index + 1 }"
+ image = "${var.instance_image_ocid[var.cloud["oci.region.name"]]}"
+ shape = "${var.env["ddr.instance.shape"]}"
+
+ create_vnic_details {
+   subnet_id = "${
+   element(
+     split("|",
+         element(
+           split(",",
+                 var.cloud["oci.network.vcn.subnets"]
+           ),
+         ( random_integer.instance_ad_shift.result + count.index ) % length(
+                       split(",",
+                             var.cloud["oci.network.vcn.subnets"]
+                       )
+                      )
+       )
+     ),
+     1
+ )
+ }"
+   display_name = "${var.env["name.short"]}-ddr-${count.index + 1}"
+   assign_public_ip = false
+   hostname_label = "${var.env["name.short"]}-ddr-${count.index + 1}"
+ }
+
+ metadata {
+   ssh_authorized_keys = "${var.cloud["oci.host.ssh.key.public"]}"
+   user_data = "${base64encode(file("${path.module}/files/bootstrap.sh"))}"
+ }
+
+ timeouts {
+   create = "60m"
+ }
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.variable.instance_image_ocid.type == 'map'
+	}
+
 }
