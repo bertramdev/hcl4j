@@ -365,4 +365,21 @@ resource "oci_core_instance" "compute_instances" {
 		results.variable.instance_image_ocid.type == 'map'
 	}
 
+
+	void "it should handle dollar sign in the password field"() {
+				given:
+
+		def hcl = '''
+variable "credentials" {
+	password = "Pa$sword"
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.variable.credentials.password == 'Pa$sword'
+	}
+
 }
