@@ -41,6 +41,7 @@ HCLParserException
   StringBuffer string = new StringBuffer();
   String endOfMultiLineSymbol;
   Boolean isMultiLineFirstNewLine = true;
+  Boolean isMultilineModified = false;
   int curleyBraceCounter = 0;
   int interpolatedCurleyBraceCounter = 0;
   HCLValue currentValue;
@@ -136,7 +137,8 @@ HCLDoubleStringCharacter = [^\n\r]
 HCLSingleStringCharacter = [^\']
 EscapedInterpolation = [\$] [\$]
 InterpolationSyntax = [\$] "{"
-MLineStart = [\<] [\<] {HCLAttributeName}
+MLineModifierStart = [\<] [\<] [\-\~] {HCLAttributeName}
+MLineStart = [\<] [\<] [\ ]? {HCLAttributeName}
 
 /* Children */
 
@@ -198,7 +200,7 @@ AssignmentExpression = [^]
 
 <MULTILINESTRING> {
 	[\r\n]					   { if(isMultiLineFirstNewLine) {isMultiLineFirstNewLine = false; } else {string.append( yytext() );} }
-	[^\n\r]+                   { if(yytext().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; Symbol attr = exitAttribute(); if(attr != null) { return attr;} } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( yytext() );} }
+	[^\n\r]+                   { if(yytext().trim().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString())) ; Symbol attr = exitAttribute(); if(attr != null) { return attr;} } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( isMultilineModified ? yytext().trim() : yytext() );} }
 }
 
 <STRINGINTERPOLATED> {
@@ -249,7 +251,8 @@ AssignmentExpression = [^]
 		\[                             { currentValue = new HCLArray((HCLMap)currentValue, currentMapKey); yybegin(HCLARRAY);/* process an array */ }
 		\{							   { currentValue = new HCLMap((HCLMap)currentValue, currentMapKey); yybegin(HCLMAP); }
 		\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
-		{MLineStart}				   {yybegin(MULTILINESTRING); isMultiLineFirstNewLine = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2);}
+    {MLineModifierStart}           {yybegin(MULTILINESTRING); isMultiLineFirstNewLine = true; isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
+		{MLineStart}				   {yybegin(MULTILINESTRING); isMultiLineFirstNewLine = true;isMultilineModified = false; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
     	{True}						   { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("boolean","true")); currentMapKey = null; yybegin(HCLMAP); }
     	{False}						   { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("boolean","false")); currentMapKey = null; yybegin(HCLMAP); }
     	{DigitValue}				   { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("number",yytext())); currentMapKey = null; yybegin(HCLMAP); }
@@ -272,7 +275,8 @@ AssignmentExpression = [^]
 		\[                             { currentValue = new HCLArray((HCLArray)currentValue); yybegin(HCLARRAY);/* process an array */ }
 		\{							   { currentValue = new HCLMap((HCLArray)currentValue); yybegin(HCLMAP); }
 		\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
-		{MLineStart}				   {yybegin(MULTILINESTRING); isMultiLineFirstNewLine = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2);}
+    {MLineModifierStart}           {yybegin(MULTILINESTRING); isMultiLineFirstNewLine = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3); isMultilineModified = true;}
+		{MLineStart}				   {yybegin(MULTILINESTRING); isMultiLineFirstNewLine = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();isMultilineModified = false;}
     	{True}						   { ((HCLArray)currentValue).add(new HCLValue("boolean","true")); }
     	{False}						   { ((HCLArray)currentValue).add(new HCLValue("boolean","false")); }
     	{DigitValue}				   { ((HCLArray)currentValue).add(new HCLValue("number",yytext())); }
@@ -287,7 +291,8 @@ AssignmentExpression = [^]
 	{MapBlockStart}							   { currentValue = new HCLMap() ; yypushback(yylength()-1) ; inMap = true; yybegin(HCLMAP);}
   \{                             {  blockNames = new ArrayList<String>(); blockNames.add(attribute.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
 	\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
-	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2);}
+  {MLineModifierStart}           {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
+	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
 	{True}						   { attribute.setValue(new HCLValue("boolean","true")) ; currentBlock.appendChild(attribute); Symbol attr = exitAttribute(); if(attr != null) { return attr;} }
 	{False}						   { attribute.setValue(new HCLValue("boolean","false")) ; currentBlock.appendChild(attribute);  Symbol attr = exitAttribute(); if(attr != null) { return attr;}}
 	{DigitValue}				   { attribute.setValue(new HCLValue("number",yytext())) ; currentBlock.appendChild(attribute);  Symbol attr = exitAttribute(); if(attr != null) { return attr;}}

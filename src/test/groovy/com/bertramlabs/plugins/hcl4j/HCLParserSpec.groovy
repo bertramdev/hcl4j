@@ -230,6 +230,22 @@ Don't you?
 '''
 	}
 
+	void "should handle stripped tabs multiline string"() {
+		def hcl = '''
+		user_data = <<-EOF
+		  #!/bin/bash
+		  echo "Hello world" > index.html
+		  nohup busybox httpd -f -p 8080 &
+		  EOF
+		'''
+		 HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.containsKey('user_data') == true
+	}
+
 
 	void "it should handle single line blocks that are empty"() {
 		given:
