@@ -398,4 +398,33 @@ variable "credentials" {
 		results.variable.credentials.password == 'Pa$sword'
 	}
 
+	void "it should handle quoted property names"() {
+					given:
+
+		def hcl = '''
+# https://docs.aws.amazon.com/elasticbeanstalk/latest/dg/concepts.platforms.html
+ available_stack_regex = {
+   "docker"        = "^64bit Amazon Linux (.*) Docker 17.09.1-ce$"
+   "docker-esc"    = "^64bit Amazon Linux (.*) Multi-container Docker 17.09.1-ce (Generic)$"
+   "dotnet"        = "^64bit Windows Server 2016 (.*) IIS 10.0$"
+   "dotnet-wsc"    = "^64bit Windows Server Core 2016 (.*) IIS 10.0$"
+   "go1.9"         = "^64bit Amazon Linux (.*) Go 1.9$"
+   "java8"         = "^64bit Amazon Linux (.*) Java 8$"
+   "java8-tomcat8" = "^64bit Amazon Linux (.*) Tomcat 8 Java 8$"
+   "nodejs"        = "^64bit Amazon Linux (.*) Node.js$"
+   "php5.6"        = "^64bit Amazon Linux (.*) PHP 5.6$"
+   "php7.0"        = "^64bit Amazon Linux (.*) PHP 7.0$"
+   "php7.1"        = "^64bit Amazon Linux (.*) PHP 7.1$"
+   "python3.6"     = "^64bit Amazon Linux (.*) Python 3.6$"
+   "python2.7"     = "^64bit Amazon Linux (.*) Python 2.7$"
+ }
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.available_stack_regex['python2.7'] == '^64bit Amazon Linux (.*) Python 2.7$'
+	}
+
 }

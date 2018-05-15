@@ -42,6 +42,7 @@ HCLParserException
   String endOfMultiLineSymbol;
   Boolean isMultiLineFirstNewLine = true;
   Boolean isMultilineModified = false;
+  Boolean stringAttributeName = false;
   int curleyBraceCounter = 0;
   int interpolatedCurleyBraceCounter = 0;
   HCLValue currentValue;
@@ -118,12 +119,13 @@ False = false
 DigitValue = [0-9\.\-]+
 
 HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_]*
+HCLQuotedPropertyName = [\"] [^\r\n]+ [\"]
 
 HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeName} {WhiteSpaceOpt} "{" [^]* "}"
 
 HCLBlockAttribute = {WhiteSpaceOpt} "\"" {HCLDoubleStringCharacters} "\"" {WhiteSpaceOpt} | {WhiteSpace} "\'" {HCLSingleStringCharacters} "\'" {WhiteSpaceOpt}
 
-HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} "="
+HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} "=" | {HCLQuotedPropertyName} {WhiteSpaceOpt} "="
 
 HCLAttributeValue = "\"" {HCLDoubleStringCharacters} "\"" | "\'" {HCLSingleStringCharacters} "\'" | {True} | {False} | {DigitValue} | [\[] {AnyChar} [\]] | [\{] {AnyChar} [\}]
 
@@ -184,12 +186,13 @@ AssignmentExpression = [^]
 }
 <STRINGDOUBLE> {
 
-  \"                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString()));  Symbol attr = exitAttribute(); if(attr != null) { return attr;} } else { throw new HCLParserException("String block found outside of block or attribute assignment."); } }
+  \"                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentValue != null && currentValue instanceof HCLMap) { if(currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else { ((HCLMap)currentValue).add(currentMapKey,new HCLValue("string",string.toString())); currentMapKey = null; yybegin(HCLMAP); }} else if(currentValue != null) { ((HCLArray)currentValue).add(new HCLValue("string",string.toString())); yybegin(HCLARRAY); } else if (stringAttributeName) { stringAttributeName = false ; yybegin(HCLATTRIBUTE); attribute = new HCLAttribute(string.toString(),null,yyline,yycolumn,yychar);} else if(attribute != null) { attribute.setValue(new HCLValue("string",string.toString()));  Symbol attr = exitAttribute(); if(attr != null) { return attr;} } else { throw new HCLParserException("String block found outside of block or attribute assignment."); } }
   \\\"                           { string.append('\"'); }
   {EscapedInterpolation}         { string.append( yytext() );}
   {InterpolationSyntax}          { string.append('$');yypushback(yylength()-1); yybegin(STRINGINTERPOLATED); }
-  \$[^\{\$]                      { string.append( yytext() ); }
-  [^\$\n\r\"\\]+                   { string.append( yytext() ); }
+  \$[^\{\$\"]                      { string.append( yytext() ); }
+  \$\"                            { string.append( "$" ); yypushback(yylength()-1); }
+  [^\$\n\r\"\\]+                 { string.append( yytext() ); }
 }
 
 <STRINGSINGLE> {
@@ -233,6 +236,7 @@ AssignmentExpression = [^]
 }
 
 <HCLATTRIBUTE> {
+  \"                             {yybegin(STRINGDOUBLE); stringAttributeName = true ;string.setLength(0);}
 	{HCLAttributeName}             {attribute = new HCLAttribute(yytext(),null,yyline,yycolumn,yychar); }
   	\=                              {yybegin(HCLATTRIBUTEVALUE); }
   	/* whitespace */
