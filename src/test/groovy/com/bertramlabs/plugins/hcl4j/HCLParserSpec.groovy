@@ -446,4 +446,37 @@ array_set = [{
 		results.array_set?.size() == 2
 	}
 
+
+	void "it should handle multiline delimiters"() {
+		given:
+		def hcl = '''
+#################################
+##  Server Specs         ##
+#################################
+resource "aws_launch_configuration" "web" {
+	//name = "${aws_vpc.main.id}-webLC"
+	name_prefix = "{aws_vpc.main.id}-webLC"
+	image_id = "ami-dbc8e3be"
+	instance_type = "t2.micro"
+	security_groups = ["${aws_security_group.main.id}"]
+
+	user_data = <<-EOF
+              #!/bin/bash
+              echo "Hello, World" > index.html
+              nohup busybox httpd -f -p 8080 &
+              EOF
+  
+	lifecycle {
+		create_before_destroy = true
+	}
+}
+
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.resource["aws_launch_configuration"]["web"]?.user_data != null
+	}
 }
