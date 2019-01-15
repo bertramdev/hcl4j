@@ -25,7 +25,6 @@ public abstract class GenericSymbol implements Symbol {
 	private Integer length;
 
 	private String name;
-	private HCLValue value;
 
 	private List<Symbol> children = new ArrayList<Symbol>();
 	private List<Symbol> attributes = new ArrayList<Symbol>();
@@ -38,15 +37,6 @@ public abstract class GenericSymbol implements Symbol {
 	public void setName(String name) {
 		this.name = name;
 	}
-
-	public void setValue(HCLValue value) {
-		this.value = value;
-	}
-
-	public HCLValue getValue() {
-		return value;
-	}
-
 
 	public Integer getLine() {
 		return line;
@@ -85,7 +75,7 @@ public abstract class GenericSymbol implements Symbol {
 	}
 
 	public void appendChild(Symbol symbol) {
-		children.add(symbol);
+		children.add(symbol); symbol.setParent(this);
 	}
 
 	public void appendAttribute(Symbol symbol) {
@@ -96,9 +86,8 @@ public abstract class GenericSymbol implements Symbol {
 		this.name = name;
 	}
 
-	public GenericSymbol(String name,HCLValue value,Integer line, Integer column,Integer position) {
+	public GenericSymbol(String name,Integer line, Integer column,Integer position) {
 		this.name = name;
-		this.value = value;
 		this.line = line;
 		this.column = column;
 		this.position = position;

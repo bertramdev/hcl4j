@@ -427,4 +427,23 @@ variable "credentials" {
 		results.available_stack_regex['python2.7'] == '^64bit Amazon Linux (.*) Python 2.7$'
 	}
 
+
+
+	void "it should handle closures inside an array"() {
+		given:
+		def hcl = '''
+array_set = [{
+  blah = "test"
+},
+{blah = "test2"}
+]
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.array_set?.size() == 2
+	}
+
 }

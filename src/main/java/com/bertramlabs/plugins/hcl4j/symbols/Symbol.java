@@ -29,9 +29,6 @@ public interface Symbol {
 	String getName();
 	void setName(String name);
 
-	HCLValue getValue();
-	void setValue(HCLValue value);
-
 	List<Symbol> getAttributes();
 	void appendAttribute(Symbol symbol);
 

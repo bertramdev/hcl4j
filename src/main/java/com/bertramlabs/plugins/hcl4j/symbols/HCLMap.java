@@ -18,31 +18,17 @@ package com.bertramlabs.plugins.hcl4j.symbols;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class HCLMap extends HCLValue {
-	public String parentKey;
+public class HCLMap extends GenericSymbol {
 
-	public HCLMap() {
-		super("map",null);
 
-		this.value = new LinkedHashMap<String,HCLValue>();
+	public HCLMap(Integer line, Integer column,Integer position) {
+		super("array",line,column,position);
 	}
 
-	public HCLMap(HCLArray parentArray) {
-		super("map",null);
-		this.parent = parentArray;
 
-		parentArray.add(this);
-		this.value = new LinkedHashMap<String,HCLValue>();
-	}
-	public HCLMap(HCLMap parent, String parentKey) {
-		super("map",null);
-		this.parent = parent;
-		this.parentKey = parentKey;
-		parent.add(parentKey,this);
-		this.value = new LinkedHashMap<String,HCLValue>();
+	public String getSymbolName() {
+		return "Map";
 	}
 
-	public void add(String key, HCLValue val) {
-		((Map<String,HCLValue>)value).put(key,val);
-	}
+
 }

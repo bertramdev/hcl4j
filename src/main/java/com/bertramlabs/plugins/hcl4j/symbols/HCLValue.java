@@ -20,12 +20,18 @@ package com.bertramlabs.plugins.hcl4j.symbols;
  * This is an internal parser lexer class and should not be needed externally.
  * @author David Estes
  */
-public class HCLValue {
+public class HCLValue extends GenericSymbol {
 	public String type;
 	public Object value;
 	public HCLValue parent;
 
-	public HCLValue(String type, Object value) {
+	public String getSymbolName() {
+		return "Value";
+	}
+
+
+	public HCLValue(String type, Object value, Integer line, Integer column,Integer position) {
+		super("value",line,column,position);
 		this.type = type;
 		this.value = value;
 	}

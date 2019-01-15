@@ -20,7 +20,7 @@ import java.util.List;
 public class HCLBlock extends GenericSymbol {
 
 	public HCLBlock(List<String> blockNames, Symbol parent,Integer line, Integer column,Integer position) {
-		super(blockNames.get(0),null,line,column,position);
+		super(blockNames.get(0),line,column,position);
 		this.blockNames = blockNames;
 		this.setParent(parent);
 	}

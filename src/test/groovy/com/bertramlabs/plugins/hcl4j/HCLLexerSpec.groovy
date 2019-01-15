@@ -45,9 +45,9 @@ service "myservice" {
 		StringReader reader = new StringReader(hcl);
 		HCLLexer lexer = new HCLLexer(reader);
 		when:
-		while((element = lexer.yylex()) != null) {
-			rootBlocks.add(element);
-		}
+		lexer.yylex();
+		rootBlocks = lexer.elementStack
+
 		println rootBlocks?.collect{[it.getSymbolName(),it.getName()]}
 		then:
 		rootBlocks.size() == 2

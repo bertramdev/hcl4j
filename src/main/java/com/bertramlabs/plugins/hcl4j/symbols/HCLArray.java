@@ -15,34 +15,14 @@
  */
 package com.bertramlabs.plugins.hcl4j.symbols;
 
-import java.util.ArrayList;
-import java.util.List;
 
-public class HCLArray extends HCLValue {
-	public String parentKey;
+public class HCLArray extends GenericSymbol {
 
-	public HCLArray() {
-		super("array",null);
-
-		this.value = new ArrayList<HCLValue>();
+	public String getSymbolName() {
+		return "Array";
 	}
 
-	public HCLArray(HCLArray parent) {
-		super("array",null);
-		this.parent = parent;
-		parent.add(this);
-		this.value = new ArrayList<HCLValue>();
-	}
-
-	public HCLArray(HCLMap parentMap, String parentKey) {
-		super("array",null);
-		this.parent = parentMap;
-		this.parentKey = parentKey;
-		parentMap.add(parentKey,this);
-		this.value = new ArrayList<HCLValue>();
-	}
-
-	public void add(HCLValue val) {
-		((List<HCLValue>)value).add(val);
+	public HCLArray(Integer line, Integer column,Integer position) {
+		super("array",line,column,position);
 	}
 }

@@ -18,9 +18,8 @@ package com.bertramlabs.plugins.hcl4j.symbols;
 public class HCLAttribute  extends GenericSymbol {
 
 
-	public HCLAttribute(String name, HCLValue value, Integer line, Integer column,Integer position) {
-		super(name,value,line,column,position);
-		this.value = value;
+	public HCLAttribute(String name, Integer line, Integer column,Integer position) {
+		super(name,line,column,position);
 	}
 
 	public String getSymbolName() {
@@ -28,6 +27,6 @@ public class HCLAttribute  extends GenericSymbol {
 	}
 
 
-	public HCLValue value;
+
 
 }

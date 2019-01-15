@@ -15,10 +15,7 @@
  */
 package com.bertramlabs.plugins.hcl4j;
 
-import com.bertramlabs.plugins.hcl4j.symbols.HCLAttribute;
-import com.bertramlabs.plugins.hcl4j.symbols.HCLBlock;
-import com.bertramlabs.plugins.hcl4j.symbols.HCLValue;
-import com.bertramlabs.plugins.hcl4j.symbols.Symbol;
+import com.bertramlabs.plugins.hcl4j.symbols.*;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -185,11 +182,10 @@ public class HCLParser {
 	 */
 	public Map<String,Object> parse(Reader reader) throws HCLParserException, IOException {
 		HCLLexer lexer = new HCLLexer(reader);
-		ArrayList<Symbol> rootBlocks = new ArrayList<Symbol>();
-		Symbol element;
-		while((element = lexer.yylex()) != null) {
-			rootBlocks.add(element);
-		}
+		ArrayList<Symbol> rootBlocks;
+		lexer.yylex();
+
+		rootBlocks = lexer.elementStack;
 
 		//Time to parse the AST Tree into a Map
 		Map<String,Object> result = new LinkedHashMap<>();
@@ -197,77 +193,83 @@ public class HCLParser {
 		Map<String,Object> mapPosition = result;
 
 		for(Symbol currentElement : rootBlocks) {
-			if(currentElement instanceof HCLBlock) {
-				HCLBlock currentBlock = (HCLBlock) currentElement;
-				processBlock(currentBlock,mapPosition);
-			} else if(currentElement instanceof HCLAttribute) {
-				HCLAttribute attr = (HCLAttribute)currentElement;
-				mapPosition.put(attr.getName(),processValue(attr.getValue()));
-			}
+			System.out.println("Block Element: " + currentElement.getName() + " - " + currentElement.getSymbolName());
+			processSymbol(currentElement,mapPosition);
+
 		}
 		return result;
 	}
 
-	private void processBlock(HCLBlock block, Map<String,Object> mapPosition) throws HCLParserException {
-		for(int counter = 0 ; counter < block.blockNames.size() ; counter++) {
-			String blockName = block.blockNames.get(counter);
-			if(mapPosition.containsKey(blockName)) {
-				if(counter == block.blockNames.size() - 1 && mapPosition.get(blockName) instanceof Map) {
-					List<Map<String,Object>> objectList = new ArrayList<>();
-					Map<String,Object> addedObject = new LinkedHashMap<String,Object>();
-					objectList.add((Map)mapPosition.get(blockName));
-					objectList.add(addedObject);
-					mapPosition.put(blockName,objectList);
-					mapPosition = addedObject;
-				} else if(mapPosition.get(blockName) instanceof Map) {
-					mapPosition = (Map<String,Object>) mapPosition.get(blockName);
-				} else if(counter == block.blockNames.size() - 1 && mapPosition.get(blockName) instanceof List) {
-					Map<String,Object> addedObject = new LinkedHashMap<String,Object>();
-					((List<Map>)mapPosition.get(blockName)).add(addedObject);
-					mapPosition = addedObject;
-				} else {
-					if(mapPosition.get(blockName) instanceof List) {
-						throw new HCLParserException("HCL Block expression scope traverses an object array");
+
+	private Object processSymbol(Symbol symbol, Map<String,Object> mapPosition) throws HCLParserException {
+
+		if(symbol instanceof HCLBlock) {
+			HCLBlock block = (HCLBlock)symbol;
+			for(int counter = 0 ; counter < block.blockNames.size() ; counter++) {
+				String blockName = block.blockNames.get(counter);
+				if(mapPosition.containsKey(blockName)) {
+					if(counter == block.blockNames.size() - 1 && mapPosition.get(blockName) instanceof Map) {
+						List<Map<String,Object>> objectList = new ArrayList<>();
+						Map<String,Object> addedObject = new LinkedHashMap<String,Object>();
+						objectList.add((Map)mapPosition.get(blockName));
+						objectList.add(addedObject);
+						mapPosition.put(blockName,objectList);
+						mapPosition = addedObject;
+					} else if(mapPosition.get(blockName) instanceof Map) {
+						mapPosition = (Map<String,Object>) mapPosition.get(blockName);
+					} else if(counter == block.blockNames.size() - 1 && mapPosition.get(blockName) instanceof List) {
+						Map<String,Object> addedObject = new LinkedHashMap<String,Object>();
+						((List<Map>)mapPosition.get(blockName)).add(addedObject);
+						mapPosition = addedObject;
 					} else {
-						throw new HCLParserException("HCL Block expression scope traverses an object value");
+						if(mapPosition.get(blockName) instanceof List) {
+							throw new HCLParserException("HCL Block expression scope traverses an object array");
+						} else {
+							throw new HCLParserException("HCL Block expression scope traverses an object value");
+						}
 					}
+				} else {
+					mapPosition.put(blockName,new LinkedHashMap<String,Object>());
+					mapPosition = (Map<String,Object>) mapPosition.get(blockName);
 				}
+			}
+			if(symbol.getChildren() != null) {
+				for(Symbol child : block.getChildren()) {
+					processSymbol(child,mapPosition);
+				}
+			}
+			return mapPosition;
+		} else if(symbol instanceof HCLMap) {
+			Map<String,Object> nestedMap = new LinkedHashMap<>();
+			if(symbol.getChildren() != null) {
+				for(Symbol child : symbol.getChildren()) {
+					processSymbol(child, nestedMap);
+				}
+			}
+			return nestedMap;
+		} else if(symbol instanceof HCLArray) {
+			if(symbol.getChildren() != null) {
+				List<Object> objectList = new ArrayList<>();
+				for(Symbol child : symbol.getChildren()) {
+					Map<String,Object> nestedMap = new LinkedHashMap<>();
+					Object result = processSymbol(child,nestedMap);
+					objectList.add(result);
+				}
+				return objectList;
 			} else {
-				mapPosition.put(blockName,new LinkedHashMap<String,Object>());
-				mapPosition = (Map<String,Object>) mapPosition.get(blockName);
+				return null;
 			}
+		} else if(symbol instanceof HCLValue) {
+			return processValue((HCLValue)symbol);
+		} else if(symbol instanceof HCLAttribute) {
+			Map<String,Object> nestedMap = new LinkedHashMap<>();
+			Object results = processSymbol(symbol.getChildren().get(0),nestedMap);
+			mapPosition.put(symbol.getName(),results);
+			return mapPosition;
 		}
-
-		if(block.getChildren() != null) {
-			for(Symbol child : block.getChildren()) {
-				if(child instanceof HCLAttribute) {
-					HCLAttribute attr = (HCLAttribute)child;
-					HCLValue value = attr.getValue();
-					mapPosition.put(attr.getName(), processValue(value));
-				} else if (child instanceof HCLBlock) {
-					processBlock((HCLBlock)child,mapPosition);
-				}
-			}
-		}
-
+		return null;
 	}
 
-	protected List<Object> processArray(List<HCLValue> values) throws HCLParserException {
-		List<Object> results = new ArrayList<Object>();
-		for(HCLValue value : values) {
-			results.add(processValue(value));
-		}
-		return results;
-	}
-
-	protected Map<String,Object> processMap(Map<String,HCLValue> values) throws HCLParserException  {
-		Map<String,Object> results = new LinkedHashMap<>();
-
-		for(String key : values.keySet()) {
-			results.put(key,processValue(values.get(key)));
-		}
-		return results;
-	}
 
 	protected Object processValue(HCLValue value) throws HCLParserException {
 		if(value.type.equals("string")) {
@@ -285,10 +287,6 @@ public class HCLParser {
 			} catch(NumberFormatException ex) {
 				throw new HCLParserException("Error Parsing Numerical Value in HCL Attribute ", ex);
 			}
-		} else if (value.type.equals("array")) {
-			return processArray((List<HCLValue>) value.value);
-		} else if (value.type.equals("map")) {
-			return processMap((Map<String,HCLValue>)value.value);
 		} else {
 			throw new HCLParserException("HCL Attribute value not recognized by parser (not implemented yet).");
 		}
