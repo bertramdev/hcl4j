@@ -2,6 +2,7 @@ build/
 .gradle/
 *.iws
 *.ipr
+.idea
 .DS_Store
 *.iml
 gradle.properties
