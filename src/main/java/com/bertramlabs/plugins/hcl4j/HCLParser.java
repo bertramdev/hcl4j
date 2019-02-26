@@ -193,7 +193,6 @@ public class HCLParser {
 		Map<String,Object> mapPosition = result;
 
 		for(Symbol currentElement : rootBlocks) {
-			System.out.println("Block Element: " + currentElement.getName() + " - " + currentElement.getSymbolName());
 			processSymbol(currentElement,mapPosition);
 
 		}
