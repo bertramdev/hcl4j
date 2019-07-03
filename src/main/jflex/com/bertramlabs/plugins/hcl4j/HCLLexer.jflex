@@ -310,6 +310,7 @@ AssignmentExpression = [^]
 <HCLMAPKEYDEF> {
 {MapKey}                           { yybegin(HCLMAPKEY); yypushback(yylength()); }
 ":"                                { startAttribute(currentMapKey); currentMapKey = null ; yybegin(HCLATTRIBUTEVALUE); }
+{Comment}                      { /* ignore */ }
 {WhiteSpace}                       { /* ignore */ }
 }
 
@@ -323,6 +324,7 @@ AssignmentExpression = [^]
 		[^,\]\r\n\ \t]                         { yypushback(yylength()); yybegin(HCLATTRIBUTEVALUE); }
     	\]							   { exitAttribute(true); }
     	,							   { /* should probably process this but due to simplicity we dont need to */ }
+    	{Comment}                      { /* ignore */ }
     	{WhiteSpace}                   { /* ignore */ }
 }
 

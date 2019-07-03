@@ -447,6 +447,22 @@ array_set = [{
 	}
 
 
+	void "it should handle comments inside an array"() {
+		given:
+		def hcl = '''
+array_set = [ "test", #comment goes here
+"test2" #another comment
+]
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.array_set?.size() == 2
+	}
+
+
 	void "it should handle multiline delimiters"() {
 		given:
 		def hcl = '''
