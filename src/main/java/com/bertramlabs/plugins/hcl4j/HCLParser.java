@@ -15,6 +15,7 @@
  */
 package com.bertramlabs.plugins.hcl4j;
 
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.Variable;
 import com.bertramlabs.plugins.hcl4j.symbols.*;
 
 import java.io.*;
@@ -286,6 +287,8 @@ public class HCLParser {
 			} catch(NumberFormatException ex) {
 				throw new HCLParserException("Error Parsing Numerical Value in HCL Attribute ", ex);
 			}
+		} else if (value.type.equals("variable")) {
+			return new Variable((String)(value.value));
 		} else {
 			throw new HCLParserException("HCL Attribute value not recognized by parser (not implemented yet).");
 		}

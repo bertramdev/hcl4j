@@ -339,6 +339,7 @@ AssignmentExpression = [^]
 	{True}						   { currentBlock.appendChild(new HCLValue("boolean","true",yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{False}						   { currentBlock.appendChild(new HCLValue("boolean","false",yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{DigitValue}				   { currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
+	{Identifier}				   { currentBlock.appendChild(new HCLValue("variable",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{Comment}                      { /* ignore */ }
 	{WhiteSpace}                   { /* ignore */ }
 

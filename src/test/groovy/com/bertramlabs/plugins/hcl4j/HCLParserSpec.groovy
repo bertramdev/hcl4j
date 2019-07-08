@@ -1,5 +1,6 @@
 package com.bertramlabs.plugins.hcl4j
 
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.Variable
 import com.bertramlabs.plugins.hcl4j.symbols.Symbol
 import groovy.json.JsonOutput
 import spock.lang.Specification
@@ -460,6 +461,22 @@ array_set = [ "test", #comment goes here
 		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.array_set?.size() == 2
+	}
+
+
+
+	void "it should handle variable references"() {
+		given:
+		def hcl = '''
+		array_set = myvariable
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.array_set instanceof Variable
+		results.array_set.name == 'myvariable'
 	}
 
 
