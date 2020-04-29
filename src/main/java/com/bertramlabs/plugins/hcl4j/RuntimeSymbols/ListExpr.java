@@ -1,5 +1,7 @@
 package com.bertramlabs.plugins.hcl4j.RuntimeSymbols;
 
 public class ListExpr extends EvalSymbol{
-	Long index;
+	public ListExpr(String name, Integer line, Integer column,Integer position) {
+		super(name,line,column,position);
+	}
 }

@@ -473,10 +473,42 @@ array_set = [ "test", #comment goes here
 		HCLParser parser = new HCLParser();
 		when:
 		def results = parser.parse(hcl)
-		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+//		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.array_set instanceof Variable
 		results.array_set.name == 'myvariable'
+	}
+
+	void "it should ignore complex evaluation sumbols for now"() {
+		given:
+		def hcl = '''
+		array_set = ( myvariable.name.lower(a,b) + blah.blah + 2 )
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+//		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.array_set == null
+
+	}
+
+	void "it should ignore complex for loops for now"() {
+		given:
+		def hcl = '''
+output "instance_public_ip_addresses" {
+  value = {
+    for instance in aws_instance.example:
+    instance.id => instance.public
+    if instance.associate_public_ip_address
+  }
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.output != null
 	}
 
 

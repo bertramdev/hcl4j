@@ -15,6 +15,7 @@
  */
 package com.bertramlabs.plugins.hcl4j;
 
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.EvalSymbol;
 import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.Variable;
 import com.bertramlabs.plugins.hcl4j.symbols.*;
 
@@ -260,11 +261,18 @@ public class HCLParser {
 				return null;
 			}
 		} else if(symbol instanceof HCLValue) {
-			return processValue((HCLValue)symbol);
+			return processValue((HCLValue) symbol);
+		} else if(symbol instanceof EvalSymbol) {
+			return processEvaluation((EvalSymbol) symbol);
 		} else if(symbol instanceof HCLAttribute) {
 			Map<String,Object> nestedMap = new LinkedHashMap<>();
-			Object results = processSymbol(symbol.getChildren().get(0),nestedMap);
-			mapPosition.put(symbol.getName(),results);
+			if(symbol.getChildren().size() > 0) {
+				Object results = processSymbol(symbol.getChildren().get(0),nestedMap);
+				mapPosition.put(symbol.getName(),results);
+			} else {
+				mapPosition.put(symbol.getName(),null);
+			}
+
 			return mapPosition;
 		}
 		return null;
@@ -287,10 +295,17 @@ public class HCLParser {
 			} catch(NumberFormatException ex) {
 				throw new HCLParserException("Error Parsing Numerical Value in HCL Attribute ", ex);
 			}
-		} else if (value.type.equals("variable")) {
-			return new Variable((String)(value.value));
 		} else {
 			throw new HCLParserException("HCL Attribute value not recognized by parser (not implemented yet).");
+		}
+	}
+
+	protected Object processEvaluation(EvalSymbol evalSymbol) {
+//		return null;
+		if(evalSymbol instanceof Variable) {
+			return evalSymbol;
+		} else {
+			return null;
 		}
 	}
 }

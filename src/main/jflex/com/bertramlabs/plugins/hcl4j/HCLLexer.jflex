@@ -15,6 +15,7 @@
  */
 package com.bertramlabs.plugins.hcl4j;
 import com.bertramlabs.plugins.hcl4j.symbols.*;
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.*;
@@ -145,6 +146,12 @@ HCLParserException
   	return exitAttribute(false);
   }
 
+     private void startEvalExpression() {
+  	    yypushback(yylength());
+  		yybegin(EVALUATEDEXPRESSION);
+     }
+
+
 
 %}
 
@@ -167,9 +174,20 @@ CommentContent       = ( [^*] | \*+ [^/*] )*
 
 AnyChar = [^]
 
-Identifier = [:jletter:] [:jletterdigit:]*
+
+Identifier = [:jletter:] [a-zA-Z0-9\-\_]*
+GetAttr = "." {Identifier}
+Function = [:jletter:] [a-zA-Z0-9\-\_]*\(
+Arguments = ({Expression} ("," {Expression})* ("," | "...")?)
+FunctionCall = {Identifier} "(" {Arguments}? ")"
+
+ArrayModifier = [:jletter:] [a-zA-Z0-9\-\_]*\[
+Property = [:jletter:] [a-zA-Z0-9\-\_]*\.
+EvaluatedExpression = [\(] | {Property} | {ArrayModifier} | {Function} | {Identifier}
+
 True = true
 False = false
+Null = null
 DigitValue = [0-9\.\-]+
 
 HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_]*
@@ -196,6 +214,21 @@ InterpolationSyntax = [\$] "{"
 MLineModifierStart = [\<] [\<] [\-\~] {HCLAttributeName}
 MLineStart = [\<] [\<] [\ ]? {HCLAttributeName}
 
+
+ExprTerm = {True} | {False} | {Null} | {DigitValue} | {Identifier} | {FunctionCall}
+Expression = {ExprTerm} | {Operation} | {Conditional}
+/*For Expression*/
+ForObjExpr = \{ [\n\t\f\r ]* {ForIntro}
+ForTupleExpr = \[ [\n\t\f\r ]* {ForIntro}
+ForExpr =  {ForObjExpr} | {ForTupleExpr}
+
+ForIntro = "for" {WhiteSpaceSL} {Identifier}
+//ForExpr = {forTupleExpr} | {forObjectExpr};
+//forTupleExpr = "[" {forIntro} {Expression} {forCond}? "]"
+//forObjectExpr = "{" {forIntro} {Expression} "=>" {Expression} "..."? {forCond}? "}"
+//forIntro = "for" {Identifier} ("," {Identifier})? "in" {Expression} ":"
+//forCond = "if" {Expression}
+
 /* Children */
 
 JSXText = {JSXTextCharacter}+
@@ -216,6 +249,10 @@ AssignmentExpression = [^]
 %state HCLMAPVALUE
 %state STRINGINTERPOLATED
 %state MULTILINESTRING
+%state EVALUATEDEXPRESSION
+%state FORLOOPEXPRESSION
+%state FORTUPLEEXPRESSION
+%state FOROBJECTEXPRESSION
 
 %%
 
@@ -321,7 +358,7 @@ AssignmentExpression = [^]
 }
 
 <HCLARRAY> {
-		[^,\]\r\n\ \t]                         { yypushback(yylength()); yybegin(HCLATTRIBUTEVALUE); }
+		[^,\]\r\n\ \t]                 { yypushback(yylength()); yybegin(HCLATTRIBUTEVALUE); }
     	\]							   { exitAttribute(true); }
     	,							   { /* should probably process this but due to simplicity we dont need to */ }
     	{Comment}                      { /* ignore */ }
@@ -330,19 +367,49 @@ AssignmentExpression = [^]
 
 
 <HCLATTRIBUTEVALUE> {
+	{ForExpr}           { yybegin(FORLOOPEXPRESSION); yypushback(yylength()); }
 	\[                             { startArray();/* process an array */ }
 	{MapBlockStart}							   { startMap(); yypushback(yylength()-1) ; yybegin(HCLMAP);}
   \{                             {  blockNames = new ArrayList<String>(); blockNames.add(currentBlock.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
-	\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
+\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
   {MLineModifierStart}           {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
 	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
 	{True}						   { currentBlock.appendChild(new HCLValue("boolean","true",yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{False}						   { currentBlock.appendChild(new HCLValue("boolean","false",yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{DigitValue}				   { currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
-	{Identifier}				   { currentBlock.appendChild(new HCLValue("variable",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
+	{EvaluatedExpression}          { startEvalExpression(); }
 	{Comment}                      { /* ignore */ }
 	{WhiteSpace}                   { /* ignore */ }
 
+}
+
+<EVALUATEDEXPRESSION> {
+	{Identifier}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
+	[\n]						   { exitAttribute(true);  }
+	{Comment}                      { /* ignore */ }
+    {WhiteSpace}                   { /* ignore */ }
+    .+             				   { /* ignore */ }
+}
+
+<FORLOOPEXPRESSION> {
+	{ForObjExpr}     { yybegin(FOROBJECTEXPRESSION); yypushback(yylength()-1);}
+	{ForTupleExpr}   { yybegin(FORTUPLEEXPRESSION); yypushback(yylength()-1);}
+}
+
+<FORTUPLEEXPRESSION> {
+    \]                             { exitAttribute(true);  }
+	{Comment}                      { /* ignore */ }
+    {WhiteSpace}                   { /* ignore */ }
+    [\n]             			   { /* ignore */ }
+    .+            				   { /* ignore */ }
+}
+
+<FOROBJECTEXPRESSION> {
+    \}                             { exitAttribute(true);  }
+	{Comment}                      { /* ignore */ }
+    {WhiteSpace}                   { /* ignore */ }
+    [\n]             			   { /* ignore */ }
+    .+             				   { /* ignore */ }
 }
 
 
