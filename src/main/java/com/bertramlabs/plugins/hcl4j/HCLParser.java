@@ -51,7 +51,6 @@ public class HCLParser {
 
 	}
 
-
 	/**
 	 * Parses terraform configuration language from a String
 	 * @param input String input containing HCL syntax
@@ -60,10 +59,34 @@ public class HCLParser {
 	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
 	 */
 	public Map<String,Object> parse(String input) throws HCLParserException, IOException {
-		StringReader reader = new StringReader(input);
-		return parse(reader);
+		return parse(input,false);
 	}
 
+	/**
+	 * Parses terraform configuration language from a String
+	 * @param input String input containing HCL syntax
+	 * @param ignoreParserExceptions if set to true, we ignore any parse exceptions and still return the symbol map
+	 * @return Mapped result of object tree coming from HCL (values of keys can be variable).
+	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
+	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
+	 */
+	public Map<String,Object> parse(String input, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
+		StringReader reader = new StringReader(input);
+		return parse(reader,ignoreParserExceptions);
+	}
+
+
+	/**
+	 * Parses terraform syntax as it comes from a File.
+	 * @param input A source file to process with a default charset of UTF-8
+	 * @param ignoreParserExceptions if set to true, we ignore any parse exceptions and still return the symbol map
+	 * @return Mapped result of object tree coming from HCL (values of keys can be variable).
+	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
+	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
+	 */
+	public Map<String,Object> parse(File input, Boolean ignoreParserExceptions) throws HCLParserException, IOException, UnsupportedEncodingException {
+		return parse(input,"UTF-8",ignoreParserExceptions);
+	}
 
 	/**
 	 * Parses terraform syntax as it comes from a File.
@@ -73,7 +96,7 @@ public class HCLParser {
 	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
 	 */
 	public Map<String,Object> parse(File input) throws HCLParserException, IOException, UnsupportedEncodingException {
-		return parse(input,"UTF-8");
+		return parse(input,"UTF-8",false);
 	}
 
 
@@ -109,10 +132,24 @@ public class HCLParser {
 	 * @throws UnsupportedEncodingException If the charset ( UTF-8 by default if unspecified) encoding is not supported
 	 */
 	public Map<String,Object> parse(File input, String charsetName) throws HCLParserException, IOException {
+		return parse(input,charsetName,false);
+	}
+
+	/**
+	 * Parses terraform syntax as it comes from a File.
+	 * @param input A source file to process
+	 * @param charsetName The name of a supported charset
+	 * @param ignoreParserExceptions if set to true, we ignore any parse exceptions and still return the symbol map
+	 * @return Mapped result of object tree coming from HCL (values of keys can be variable).
+	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
+	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
+	 * @throws UnsupportedEncodingException If the charset ( UTF-8 by default if unspecified) encoding is not supported
+	 */
+	public Map<String,Object> parse(File input, String charsetName, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
 		InputStream is = null;
 		try {
 			is = new FileInputStream(input);
-			return parse(is,charsetName);
+			return parse(is,charsetName,ignoreParserExceptions);
 		} finally {
 			if(is != null) {
 				is.close();
@@ -154,6 +191,7 @@ public class HCLParser {
 		return parse(reader);
 	}
 
+
 	/**
 	 * Parses terraform syntax as it comes from an input stream. The end user is responsible for ensuring the stream is
 	 * closed at the end of the parse operation (commonly via wrapping in a finally block)
@@ -165,6 +203,21 @@ public class HCLParser {
 	 * @throws UnsupportedEncodingException If the charset ( UTF-8 by default if unspecified) encoding is not supported.
 	 */
 	public Map<String,Object> parse(InputStream input, String charsetName) throws HCLParserException, IOException, UnsupportedEncodingException {
+		parse(input,charsetName,false);
+	}
+
+	/**
+	 * Parses terraform syntax as it comes from an input stream. The end user is responsible for ensuring the stream is
+	 * closed at the end of the parse operation (commonly via wrapping in a finally block)
+	 * @param input Streamable input of text going to the lexer
+	 * @param charsetName String lookup of the character set this stream is providing (default UTF-8)
+	 * @param ignoreParserExceptions if set to true, we ignore any parse exceptions and still return the symbol map
+	 * @return Mapped result of object tree coming from HCL (values of keys can be variable).
+	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
+	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
+	 * @throws UnsupportedEncodingException If the charset ( UTF-8 by default if unspecified) encoding is not supported.
+	 */
+	public Map<String,Object> parse(InputStream input, String charsetName, Boolean ignoreParserExceptions) throws HCLParserException, IOException, UnsupportedEncodingException {
 
 		InputStreamReader reader;
 		if(charsetName != null) {
@@ -172,7 +225,7 @@ public class HCLParser {
 		} else {
 			reader = new InputStreamReader(input,"UTF-8");
 		}
-		return parse(reader);
+		return parse(reader,ignoreParserExceptions);
 	}
 
 	/**
@@ -183,9 +236,31 @@ public class HCLParser {
 	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
 	 */
 	public Map<String,Object> parse(Reader reader) throws HCLParserException, IOException {
+		return parse(reader,false);
+	}
+
+	/**
+	 * Parses terraform configuration language from a Reader
+	 * @param reader A reader object used for absorbing various streams or String variables containing the hcl code
+	 * @param ignoreParserExceptions if set to true, we ignore any parse exceptions and still return the symbol map
+	 * @return Mapped result of object tree coming from HCL (values of keys can be variable).
+	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
+	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
+	 */
+	public Map<String,Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
 		HCLLexer lexer = new HCLLexer(reader);
 		ArrayList<Symbol> rootBlocks;
-		lexer.yylex();
+
+		if(ignoreParserExceptions) {
+			try {
+				lexer.yylex();	
+			} catch(Exception ex) {
+				//TODO: Log the exception
+			}
+		} else {
+			lexer.yylex();
+		}
+		
 
 		rootBlocks = lexer.elementStack;
 
