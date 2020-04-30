@@ -203,7 +203,7 @@ public class HCLParser {
 	 * @throws UnsupportedEncodingException If the charset ( UTF-8 by default if unspecified) encoding is not supported.
 	 */
 	public Map<String,Object> parse(InputStream input, String charsetName) throws HCLParserException, IOException, UnsupportedEncodingException {
-		parse(input,charsetName,false);
+		return parse(input,charsetName,false);
 	}
 
 	/**
