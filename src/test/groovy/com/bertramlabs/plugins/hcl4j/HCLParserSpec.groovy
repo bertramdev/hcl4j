@@ -468,7 +468,7 @@ array_set = [ "test", #comment goes here
 	void "it should handle variable references"() {
 		given:
 		def hcl = '''
-		array_set = myvariable
+		array_set = myvariable.user
 '''
 		HCLParser parser = new HCLParser();
 		when:
@@ -476,10 +476,10 @@ array_set = [ "test", #comment goes here
 //		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.array_set instanceof Variable
-		results.array_set.name == 'myvariable'
+		results.array_set.name == 'myvariable.user'
 	}
 
-	void "it should ignore complex evaluation sumbols for now"() {
+	void "it should ignore complex evaluation symbols for now"() {
 		given:
 		def hcl = '''
 		array_set = ( myvariable.name.lower(a,b) + blah.blah + 2 )

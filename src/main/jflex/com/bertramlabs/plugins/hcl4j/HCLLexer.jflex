@@ -176,6 +176,7 @@ AnyChar = [^]
 
 
 Identifier = [:jletter:] [a-zA-Z0-9\-\_]*
+IdentifierTree = [:jletter:] [a-zA-Z0-9\-\_\.]*
 GetAttr = "." {Identifier}
 Function = [:jletter:] [a-zA-Z0-9\-\_]*\(
 Arguments = ({Expression} ("," {Expression})* ("," | "...")?)
@@ -183,7 +184,7 @@ FunctionCall = {Identifier} "(" {Arguments}? ")"
 
 ArrayModifier = [:jletter:] [a-zA-Z0-9\-\_]*\[
 Property = [:jletter:] [a-zA-Z0-9\-\_]*\.
-EvaluatedExpression = [\(] | {Property} | {ArrayModifier} | {Function} | {Identifier}
+EvaluatedExpression = [\(] | {IdentifierTree} | {ArrayModifier} | {Function} | {Identifier}
 
 True = true
 False = false
@@ -384,7 +385,7 @@ AssignmentExpression = [^]
 }
 
 <EVALUATEDEXPRESSION> {
-	{Identifier}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
+	{IdentifierTree}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
 	[\n]						   { exitAttribute(true);  }
 	{Comment}                      { /* ignore */ }
     {WhiteSpace}                   { /* ignore */ }
