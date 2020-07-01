@@ -3,7 +3,7 @@ buildscript {
         // mavenLocal()
         jcenter()
         maven {
-            url "http://xbib.org/repository"
+            url "https://xbib.org/repository"
         }
     }
     dependencies {
@@ -16,9 +16,9 @@ plugins {
 }
 
 apply plugin: 'java'
+apply plugin: 'java-library'
 apply plugin: 'groovy'
 apply plugin: 'maven-publish'
-apply plugin: 'maven'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'idea'
 apply plugin: 'org.xbib.gradle.plugin.jflex'
@@ -37,9 +37,9 @@ repositories {
 }
 
 dependencies {
-    compile("commons-logging:commons-logging:1.1.1")
-    testCompile "org.codehaus.groovy:groovy-all:2.4.1"
-    testCompile "org.spockframework:spock-core:0.7-groovy-2.0"
+    api "commons-logging:commons-logging:1.1.1"
+    testImplementation "org.codehaus.groovy:groovy-all:2.4.1"
+    testImplementation "org.spockframework:spock-core:0.7-groovy-2.0"
 }
 
 
