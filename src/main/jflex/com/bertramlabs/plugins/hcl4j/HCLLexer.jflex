@@ -208,7 +208,7 @@ MapBlockStart = "{" {WhiteSpaceOpt} {MapKeyDef}
 
 HCLDoubleStringCharacters = {HCLDoubleStringCharacter}*
 HCLSingleStringCharacters = {HCLSingleStringCharacter}*
-HCLDoubleStringCharacter = [^\n\r]
+HCLDoubleStringCharacter = [^\r\n]
 HCLSingleStringCharacter = [^\']
 EscapedInterpolation = [\$] [\$]
 InterpolationSyntax = [\$] "{"
@@ -294,7 +294,7 @@ AssignmentExpression = [^]
 }
 
 <MULTILINESTRING> {
-	[\r\n]					   { if(isMultiLineFirstNewLine) {isMultiLineFirstNewLine = false; } else {string.append( yytext() );} }
+	{LineTerminator}					   { if(isMultiLineFirstNewLine) {isMultiLineFirstNewLine = false; } else {string.append( yytext() );} }
 	[^\n\r]+                   { if(yytext().trim().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(attribute != null) { attribute.appendChild(new HCLValue("string",string.toString(),yyline,yycolumn,yychar)) ; exitAttribute(); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( isMultilineModified ? yytext().trim() : yytext() );} }
 }
 
@@ -386,7 +386,8 @@ AssignmentExpression = [^]
 
 <EVALUATEDEXPRESSION> {
 	{IdentifierTree}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
-	[\n]						   { exitAttribute(true);  }
+  
+	{LineTerminator}						   { exitAttribute(true);  }
 	{Comment}                      { /* ignore */ }
     {WhiteSpace}                   { /* ignore */ }
     .+             				   { /* ignore */ }
@@ -401,15 +402,15 @@ AssignmentExpression = [^]
     \]                             { exitAttribute(true);  }
 	{Comment}                      { /* ignore */ }
     {WhiteSpace}                   { /* ignore */ }
-    [\n]             			   { /* ignore */ }
+    {LineTerminator}             			   { /* ignore */ }
     .+            				   { /* ignore */ }
 }
 
 <FOROBJECTEXPRESSION> {
     \}                             { exitAttribute(true);  }
 	{Comment}                      { /* ignore */ }
-    {WhiteSpace}                   { /* ignore */ }
-    [\n]             			   { /* ignore */ }
+  {WhiteSpace}                   { /* ignore */ }
+  {LineTerminator}             			   { /* ignore */ }
     .+             				   { /* ignore */ }
 }
 

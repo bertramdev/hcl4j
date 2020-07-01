@@ -544,4 +544,102 @@ resource "aws_launch_configuration" "web" {
 		then:
 		results.resource["aws_launch_configuration"]["web"]?.user_data != null
 	}
+
+
+	void "it should handle a sample aws tf template"() {
+		given:
+		def hcl = '''
+# variables
+variable "access_key" {}
+variable "secret_key" {}
+variable "region" {}
+variable "vpc_id" {
+  default = "vpc-b10f29d4"
+}
+variable "subnet_id" {
+  default = "subnet-bcaf9ad9"
+}
+variable "inbound_cidr" {
+  default = "0.0.0.0/0"
+}
+
+# provider
+provider "aws" {
+  version = "~> 2.0"
+  access_key = var.access_key 
+  secret_key = var.secret_key 
+  region = var.region
+}
+
+# find the vpc
+data "aws_vpc" "bw-vpc-1" {
+  id = var.vpc_id
+}
+
+# target subnet
+data "aws_subnet" "bw-subnet-1" {
+  id = var.subnet_id
+}
+
+# ami
+data "aws_ami" "bw-ami-1" {
+  most_recent = true
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+  }
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+  # Canonical
+  owners = ["099720109477"] 
+}
+
+# create a security group
+resource "aws_security_group" "bw-sg-1" {
+  vpc_id = var.vpc_id
+  name = "bw-security-group-1"
+  
+  # allow ingress of port 22
+  ingress {
+    cidr_blocks = [var.inbound_cidr]
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+  }
+  
+  # allow egress of all ports
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "bw-security-group-1"
+  }
+}
+
+# create instance
+resource "aws_instance" "bw-instance-1" {
+  ami = data.aws_ami.bw-ami-1.id
+  instance_type = "t2.micro"
+  key_name = "bw-gen-key"
+  security_groups = [aws_security_group.bw-sg-1.id]
+  tags = {
+    Name = "bw-instance-1"
+  }
+  subnet_id = data.aws_subnet.bw-subnet-1.id
+}
+'''
+	HCLParser parser = new HCLParser();
+	when:
+	def results = parser.parse(hcl)
+	println results
+	then:
+	results.resource["aws_instance"]["bw-instance-1"] != null
+
+	}
 }

@@ -24,7 +24,7 @@ apply plugin: 'idea'
 apply plugin: 'org.xbib.gradle.plugin.jflex'
 
 group = 'com.bertramlabs.plugins'
-version = '0.3.2'
+version = '0.3.3'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = '1.7'
@@ -75,8 +75,10 @@ publishing {
                 }
             }
             from components.java
-            artifact sourcesJar
-            artifact javadocJar
+            afterEvaluate {
+                artifact sourcesJar
+                artifact javadocJar
+            }
         }
     }
 }
