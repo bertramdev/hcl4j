@@ -386,7 +386,7 @@ AssignmentExpression = [^]
 
 <EVALUATEDEXPRESSION> {
 	{IdentifierTree}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
-  
+  \}                             { exitAttribute(true);  }
 	{LineTerminator}						   { exitAttribute(true);  }
 	{Comment}                      { /* ignore */ }
     {WhiteSpace}                   { /* ignore */ }
