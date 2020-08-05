@@ -386,11 +386,11 @@ AssignmentExpression = [^]
 
 <EVALUATEDEXPRESSION> {
 	{IdentifierTree}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
-  \}                             { exitAttribute(true);  }
+  \}                             { yypushback(yylength()); exitAttribute(true);  }
 	{LineTerminator}						   { exitAttribute(true);  }
 	{Comment}                      { /* ignore */ }
-    {WhiteSpace}                   { /* ignore */ }
-    .+             				   { /* ignore */ }
+  {WhiteSpace}                   { /* ignore */ }
+  [^}\n]+             				   { /* ignore */ }
 }
 
 <FORLOOPEXPRESSION> {
@@ -403,7 +403,7 @@ AssignmentExpression = [^]
 	{Comment}                      { /* ignore */ }
     {WhiteSpace}                   { /* ignore */ }
     {LineTerminator}             			   { /* ignore */ }
-    .+            				   { /* ignore */ }
+  [^\]\n]+            				   { /* ignore */ }
 }
 
 <FOROBJECTEXPRESSION> {
@@ -411,7 +411,7 @@ AssignmentExpression = [^]
 	{Comment}                      { /* ignore */ }
   {WhiteSpace}                   { /* ignore */ }
   {LineTerminator}             			   { /* ignore */ }
-    .+             				   { /* ignore */ }
+  [^}\n]+             				   { /* ignore */ }
 }
 
 

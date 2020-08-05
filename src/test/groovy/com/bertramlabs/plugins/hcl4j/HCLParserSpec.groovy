@@ -512,6 +512,91 @@ output "instance_public_ip_addresses" {
 	}
 
 
+	void "it should handle closing block on same line as value hcl2"() {
+		given:
+		def hcl = '''
+		provider "vsphere" {
+  user           = var.vsphereUsername
+  password       = var.vspherePassword
+  vsphere_server = var.vsphereUrl
+  version = "~> 1.11.0"
+  allow_unverified_ssl = true
+}
+
+data "vsphere_datacenter" "dc" {
+  name = "wheeler"
+}
+
+data "vsphere_datastore" "datastore" {
+  name = "wheeler-vsan"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_resource_pool" "pool" {
+  name = "terraform"
+  datacenter_id = "${data.vsphere_datacenter.dc.id}"
+}
+
+data "vsphere_network" "network" {
+  name = "wheeler-vms"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_virtual_machine" "template" {
+  name = "Morpheus Ubuntu 18.04.2 v1"
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+# Create (and display) an SSH key
+resource "tls_private_key" "bw-key-1" {
+  algorithm = "RSA"
+  rsa_bits = 4096
+}
+
+output "tls_private_key" { value = tls_private_key.bw-key-1.private_key_pem }
+
+#create a vm
+resource "vsphere_virtual_machine" "vm-1" {
+  name = "terraform-test-1"
+  resource_pool_id = data.vsphere_resource_pool.pool.id
+  datastore_id = data.vsphere_datastore.datastore.id
+  num_cpus = 1
+  memory = 1024
+  guest_id = "ubuntu64Guest"
+
+  network_interface {
+    network_id = data.vsphere_network.network.id
+  }
+
+  disk {
+    label = "disk0"
+    thin_provisioned = true
+    size  = 20
+  }
+
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+  }
+
+  connection {
+    type = "ssh"
+    user = "cloud-user"
+    private_key = tls_private_key.bw-key-1
+    password = "password"
+  }
+
+}
+
+'''
+	HCLParser parser = new HCLParser();
+	when:
+	def results = parser.parse(hcl)
+	println results
+	then:
+	results.resource["vsphere_virtual_machine"]["vm-1"] != null
+	}
+
+
 	void "it should handle multiline delimiters"() {
 		given:
 		def hcl = '''
