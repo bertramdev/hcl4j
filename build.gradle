@@ -24,7 +24,7 @@ apply plugin: 'idea'
 apply plugin: 'org.xbib.gradle.plugin.jflex'
 
 group = 'com.bertramlabs.plugins'
-version = '0.3.4'
+version = '0.3.5'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = '1.7'

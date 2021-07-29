@@ -377,6 +377,7 @@ AssignmentExpression = [^]
 	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
 	{True}						   { currentBlock.appendChild(new HCLValue("boolean","true",yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{False}						   { currentBlock.appendChild(new HCLValue("boolean","false",yyline,yycolumn,yychar)) ; exitAttribute(); }
+  {Null}              { currentBlock.appendChild(new HCLValue("null",null,yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{DigitValue}				   { currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
 	{EvaluatedExpression}          { startEvalExpression(); }
 	{Comment}                      { /* ignore */ }
