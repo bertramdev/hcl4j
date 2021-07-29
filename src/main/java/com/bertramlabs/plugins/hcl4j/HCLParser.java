@@ -364,7 +364,7 @@ public class HCLParser {
 				return new Boolean(false);
 			}
 		} else if (value.type.equals("null")) {
-			return null
+			return null;
 		} else if (value.type.equals("number")) {
 			try {
 				Double numericalValue = Double.parseDouble((String) (value.value));

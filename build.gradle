@@ -1,27 +1,33 @@
 buildscript {
     repositories {
-        // mavenLocal()
-        jcenter()
+        mavenLocal()
+        mavenCentral()
         maven {
             url "https://xbib.org/repository"
         }
+        maven { url "https://plugins.gradle.org/m2/" }
     }
     dependencies {
         classpath 'org.xbib.gradle.plugin:gradle-plugin-jflex:1.1.0'
+        classpath "io.github.gradle-nexus:publish-plugin:1.0.0"
     }
 }
 
-plugins {
-    id "com.jfrog.bintray" version "1.8.5"
-}
+
 
 apply plugin: 'java'
 apply plugin: 'java-library'
 apply plugin: 'groovy'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
 apply plugin: 'idea'
+apply plugin: 'signing'
 apply plugin: 'org.xbib.gradle.plugin.jflex'
+
+ext {
+    isBuildSnapshot = version.endsWith('-SNAPSHOT')
+    isReleaseVersion = !isBuildSnapshot
+}
+
 
 group = 'com.bertramlabs.plugins'
 version = '0.3.5'
@@ -32,7 +38,6 @@ targetCompatibility = '1.7'
 
 repositories {
     mavenLocal()
-    jcenter()
     mavenCentral()
 }
 
@@ -42,6 +47,21 @@ dependencies {
     testImplementation "org.spockframework:spock-core:1.3-groovy-2.5"
 }
 
+if (isReleaseVersion) {
+    apply plugin: "io.github.gradle-nexus.publish-plugin"
+    nexusPublishing {
+        repositories {
+            sonatype {
+                if(project.hasProperty('mavenUser')) {
+                    username = mavenUser
+                    password = mavenPassword
+                }    
+            }
+        }
+    }
+} else {
+
+}
 
 publishing {
     publications {
@@ -85,20 +105,20 @@ publishing {
 
 
 //Define bintrayUser and bintrayKey in ~/.gradle/gradle.properties
-bintray {
-    if(project.hasProperty('bintrayUser')) {
-        user = bintrayUser
-        key = bintrayKey
-    }
-    publications = ['maven']
-    pkg {
-        repo = 'gomorpheus'
-        userOrg = 'bertramlabs'
-        name = 'hcl4j'
-        vcsUrl = 'https://github.com/bertramdev/hcl4j.git'
-        licenses = ['Apache-2.0']
-    }
-}
+// bintray {
+//     if(project.hasProperty('bintrayUser')) {
+//         user = bintrayUser
+//         key = bintrayKey
+//     }
+//     publications = ['maven']
+//     pkg {
+//         repo = 'gomorpheus'
+//         userOrg = 'bertramlabs'
+//         name = 'hcl4j'
+//         vcsUrl = 'https://github.com/bertramdev/hcl4j.git'
+//         licenses = ['Apache-2.0']
+//     }
+// }
 
 
 
@@ -130,4 +150,19 @@ test {
 }
 
 
-bintrayUpload.dependsOn build, sourcesJar, javadocJar
+afterEvaluate {
+    signing {
+        required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
+        sign publishing.publications.maven
+    }
+}
+
+tasks.withType(Sign) {
+    onlyIf { isReleaseVersion }
+}
+
+//do not generate extra load on Nexus with new staging repository if signing fails
+tasks.withType(io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository).configureEach {
+    shouldRunAfter(tasks.withType(Sign))
+}
+
