@@ -53,102 +53,103 @@ HCLParserException
   Boolean inMap = false;
   Boolean fromMapKey = false;
   HCLAttribute attribute;
+  ListPrimitiveType listPrimitiveType;
 
   Symbol currentBlock = null;
   private Symbol hclBlock(List<String> blockNames) {
-  	//System.out.println("Starting Block");
-  	HCLBlock block = new HCLBlock(blockNames,currentBlock,yyline,yycolumn-1,yychar-1);
+    //System.out.println("Starting Block");
+    HCLBlock block = new HCLBlock(blockNames,currentBlock,yyline,yycolumn-1,yychar-1);
     if(currentBlock == null) {
-    	elementStack.add(block);
+      elementStack.add(block);
     } else {
-    	currentBlock.appendChild(block);
+      currentBlock.appendChild(block);
     }
     currentBlock = block;
-	return currentBlock;
+  return currentBlock;
   }
 
   private Symbol exitBlock() {
-  	//System.out.println("Leaving Block");
-  	Symbol result = null;
-  	if(currentBlock != null) {
-  		if(currentBlock.getParent() == null) {
-  			result = currentBlock;
-  		}
-  		currentBlock =  currentBlock.getParent();
-  	}
-  	return result;
+    //System.out.println("Leaving Block");
+    Symbol result = null;
+    if(currentBlock != null) {
+      if(currentBlock.getParent() == null) {
+        result = currentBlock;
+      }
+      currentBlock =  currentBlock.getParent();
+    }
+    return result;
   }
 
   private void startAttribute(String name) {
-  	  	//System.out.println("Starting Attribute");
+        //System.out.println("Starting Attribute");
 
-  	HCLAttribute currentAttribute = new HCLAttribute(name,yyline,yycolumn,yychar);
-  	if(currentBlock == null) {
-  		elementStack.add(currentAttribute);
-  	} else {
-  		currentBlock.appendChild(currentAttribute);
-  	}
-  	currentBlock = currentAttribute;
-  	attribute = currentAttribute;
+    HCLAttribute currentAttribute = new HCLAttribute(name,yyline,yycolumn,yychar);
+    if(currentBlock == null) {
+      elementStack.add(currentAttribute);
+    } else {
+      currentBlock.appendChild(currentAttribute);
+    }
+    currentBlock = currentAttribute;
+    attribute = currentAttribute;
   }
 
   private void startMap() {
-  	HCLMap currentAttribute = new HCLMap(yyline,yycolumn,yychar);
-      	if(currentBlock == null) {
-      		elementStack.add(currentAttribute);
-      	} else {
-      		currentBlock.appendChild(currentAttribute);
-      	}
-      	currentBlock = currentAttribute;
+    HCLMap currentAttribute = new HCLMap(yyline,yycolumn,yychar);
+        if(currentBlock == null) {
+          elementStack.add(currentAttribute);
+        } else {
+          currentBlock.appendChild(currentAttribute);
+        }
+        currentBlock = currentAttribute;
   }
 
   private void startArray() {
-  	  	HCLArray currentAttribute = new HCLArray(yyline,yycolumn,yychar);
-          	if(currentBlock == null) {
-          		elementStack.add(currentAttribute);
-          	} else {
-          		currentBlock.appendChild(currentAttribute);
-          	}
-          	currentBlock = currentAttribute;
-          	yybegin(HCLARRAY);
+        HCLArray currentAttribute = new HCLArray(yyline,yycolumn,yychar);
+            if(currentBlock == null) {
+              elementStack.add(currentAttribute);
+            } else {
+              currentBlock.appendChild(currentAttribute);
+            }
+            currentBlock = currentAttribute;
+            yybegin(HCLARRAY);
   }
 
 
   private Symbol exitAttribute(Boolean force) {
 
-  	if(currentBlock == null) {
-  		yybegin(YYINITIAL);
-  		Symbol result = attribute;
-  		attribute = null;
-  		exitBlock();
-  		return result;
-  	} else {
-  		attribute = null;
-		if((!(currentBlock instanceof HCLArray) && !(currentBlock instanceof HCLMap)) || force == true) {
-			exitBlock();
-		}
-  		if(currentBlock instanceof HCLBlock) {
-  			yybegin(HCLINBLOCK);
-  		} else if(currentBlock instanceof HCLArray) {
-  			yybegin(HCLARRAY);
-  		} else if(currentBlock instanceof HCLMap) {
-  			yybegin(HCLMAP);
-  		} else if(currentBlock instanceof HCLAttribute) {
-			exitAttribute();
-  		} else {
-  			yybegin(YYINITIAL);
-  		}
-  		return null;
-  	}
+    if(currentBlock == null) {
+      yybegin(YYINITIAL);
+      Symbol result = attribute;
+      attribute = null;
+      exitBlock();
+      return result;
+    } else {
+      attribute = null;
+    if((!(currentBlock instanceof HCLArray) && !(currentBlock instanceof HCLMap)) || force == true) {
+      exitBlock();
+    }
+      if(currentBlock instanceof HCLBlock) {
+        yybegin(HCLINBLOCK);
+      } else if(currentBlock instanceof HCLArray) {
+        yybegin(HCLARRAY);
+      } else if(currentBlock instanceof HCLMap) {
+        yybegin(HCLMAP);
+      } else if(currentBlock instanceof HCLAttribute) {
+      exitAttribute();
+      } else {
+        yybegin(YYINITIAL);
+      }
+      return null;
+    }
   }
 
   private Symbol exitAttribute() {
-  	return exitAttribute(false);
+    return exitAttribute(false);
   }
 
      private void startEvalExpression() {
-  	    yypushback(yylength());
-  		yybegin(EVALUATEDEXPRESSION);
+        yypushback(yylength());
+      yybegin(EVALUATEDEXPRESSION);
      }
 
 
@@ -189,6 +190,13 @@ EvaluatedExpression = [\(] | {IdentifierTree} | {ArrayModifier} | {Function} | {
 True = true
 False = false
 Null = null
+
+StringPrimitive = string
+NumberPrimitive = number
+BooleanPrimitive = boolean
+ListPrimitive = list | list*\(
+MapPrimitive = map
+
 DigitValue = [0-9\.\-]+
 
 HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_]*
@@ -199,8 +207,6 @@ HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeN
 HCLBlockAttribute = {WhiteSpaceOpt} "\"" {HCLDoubleStringCharacters} "\"" {WhiteSpaceOpt} | {WhiteSpace} "\'" {HCLSingleStringCharacters} "\'" {WhiteSpaceOpt}
 
 HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} "=" | {HCLQuotedPropertyName} {WhiteSpaceOpt} "="
-
-HCLAttributeValue = "\"" {HCLDoubleStringCharacters} "\"" | "\'" {HCLSingleStringCharacters} "\'" | {True} | {False} | {DigitValue} | [\[] {AnyChar} [\]] | [\{] {AnyChar} [\}]
 
 MapKeyDef = {MapKey} ":"
 MapKey = {HCLAttributeName} | "\"" {HCLDoubleStringCharacters} "\""
@@ -254,6 +260,7 @@ AssignmentExpression = [^]
 %state FORLOOPEXPRESSION
 %state FORTUPLEEXPRESSION
 %state FOROBJECTEXPRESSION
+%state LISTPRIMITIVETYPE
 
 %%
 
@@ -261,7 +268,7 @@ AssignmentExpression = [^]
 <YYINITIAL> {
   /* identifiers */ 
   {HCLBlock}        {yybegin(HCLBLOCKHEADER);yypushback(yylength()); }
-  {HCLAttribute}	{yybegin(HCLATTRIBUTE);yypushback(yylength()); }
+  {HCLAttribute}  {yybegin(HCLATTRIBUTE);yypushback(yylength()); }
   /* comments */
   {Comment}                      { /* ignore */ }
  
@@ -294,14 +301,14 @@ AssignmentExpression = [^]
 }
 
 <MULTILINESTRING> {
-	{LineTerminator}					   { if(isMultiLineFirstNewLine) {isMultiLineFirstNewLine = false; } else {string.append( yytext() );} }
-	[^\n\r]+                   { if(yytext().trim().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(attribute != null) { attribute.appendChild(new HCLValue("string",string.toString(),yyline,yycolumn,yychar)) ; exitAttribute(); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( isMultilineModified ? yytext().trim() : yytext() );} }
+  {LineTerminator}             { if(isMultiLineFirstNewLine) {isMultiLineFirstNewLine = false; } else {string.append( yytext() );} }
+  [^\n\r]+                   { if(yytext().trim().equals(endOfMultiLineSymbol)) { endOfMultiLineSymbol = null; if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(attribute != null) { attribute.appendChild(new HCLValue("string",string.toString(),yyline,yycolumn,yychar)) ; exitAttribute(); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); }} else {string.append( isMultilineModified ? yytext().trim() : yytext() );} }
 }
 
 <STRINGINTERPOLATED> {
   \}                             { string.append(yytext()); if(interpolatedCurleyBraceCounter > 1) {interpolatedCurleyBraceCounter--;} else { interpolatedCurleyBraceCounter--; yybegin(STRINGDOUBLE);} }
   \{                             { string.append(yytext()); interpolatedCurleyBraceCounter++; }
-  \"							 {string.append(yytext());}
+  \"               {string.append(yytext());}
   [^\{\}\"\\]+                   { string.append( yytext() ); }
 }
 
@@ -312,35 +319,35 @@ AssignmentExpression = [^]
 }
 
 <HCLBLOCKATTRIBUTES> {
-	\{                             { curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; yybegin(HCLINBLOCK); }
-	\"                             {yybegin(STRINGDOUBLE); string.setLength(0);}
-	{WhiteSpace}                   { /* ignore */ }
+  \{                             { curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; yybegin(HCLINBLOCK); }
+  \"                             {yybegin(STRINGDOUBLE); string.setLength(0);}
+  {WhiteSpace}                   { /* ignore */ }
 }
 
 <HCLINBLOCK> {
-	{HCLBlock}                     {yybegin(HCLBLOCKHEADER);yypushback(yylength()); }
-	{HCLAttribute}				   {yybegin(HCLATTRIBUTE);yypushback(yylength()); }
-	/* comments */
-	{Comment}                      { /* ignore */ }
-	\}							   { exitAttribute();}
-	/* whitespace */
-	{WhiteSpace}                   { /* ignore */ }
+  {HCLBlock}                     {yybegin(HCLBLOCKHEADER);yypushback(yylength()); }
+  {HCLAttribute}           {yybegin(HCLATTRIBUTE);yypushback(yylength()); }
+  /* comments */
+  {Comment}                      { /* ignore */ }
+  \}                 { exitAttribute();}
+  /* whitespace */
+  {WhiteSpace}                   { /* ignore */ }
 }
 
 <HCLATTRIBUTE> {
   \"                             {yybegin(STRINGDOUBLE); stringAttributeName = true ;string.setLength(0);}
-	{HCLAttributeName}             {startAttribute(yytext());}
-  	\=                              {yybegin(HCLATTRIBUTEVALUE); }
-  	/* whitespace */
-  	{WhiteSpace}                   { /* ignore */ }	
+  {HCLAttributeName}             {startAttribute(yytext());}
+    \=                              {yybegin(HCLATTRIBUTEVALUE); }
+    /* whitespace */
+    {WhiteSpace}                   { /* ignore */ } 
 }
 
 
 <HCLMAP> {
 
-	{MapKeyDef}                    { yypushback(yylength()); yybegin(HCLMAPKEY); }
-	,							   { /* should probably process this but due to simplicity we dont need to */ }
-	\}							   { exitAttribute(true); }
+  {MapKeyDef}                    { yypushback(yylength()); yybegin(HCLMAPKEY); }
+  ,                { /* should probably process this but due to simplicity we dont need to */ }
+  \}                 { exitAttribute(true); }
     {WhiteSpace}                   { /* ignore */ }
 }
 
@@ -353,66 +360,83 @@ AssignmentExpression = [^]
 }
 
 <HCLMAPKEY> {
-	\"                             {yybegin(STRINGDOUBLE); string.setLength(0); fromMapKey = true; }
-	{HCLAttributeName}             { currentMapKey = yytext() ; yybegin(HCLMAPKEYDEF);}
-	{WhiteSpace}                   { /* ignore */ }
+  \"                             {yybegin(STRINGDOUBLE); string.setLength(0); fromMapKey = true; }
+  {HCLAttributeName}             { currentMapKey = yytext() ; yybegin(HCLMAPKEYDEF);}
+  {WhiteSpace}                   { /* ignore */ }
 }
 
 <HCLARRAY> {
-		[^,\]\r\n\ \t]                 { yypushback(yylength()); yybegin(HCLATTRIBUTEVALUE); }
-    	\]							   { exitAttribute(true); }
-    	,							   { /* should probably process this but due to simplicity we dont need to */ }
-    	{Comment}                      { /* ignore */ }
-    	{WhiteSpace}                   { /* ignore */ }
+    [^,\]\r\n\ \t]                 { yypushback(yylength()); yybegin(HCLATTRIBUTEVALUE); }
+      \]                 { exitAttribute(true); }
+      ,                { /* should probably process this but due to simplicity we dont need to */ }
+      {Comment}                      { /* ignore */ }
+      {WhiteSpace}                   { /* ignore */ }
 }
 
 
 <HCLATTRIBUTEVALUE> {
-	{ForExpr}           { yybegin(FORLOOPEXPRESSION); yypushback(yylength()); }
-	\[                             { startArray();/* process an array */ }
-	{MapBlockStart}							   { startMap(); yypushback(yylength()-1) ; yybegin(HCLMAP);}
-  \{                             {  blockNames = new ArrayList<String>(); blockNames.add(currentBlock.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
-\"                             {yybegin(STRINGDOUBLE); string.setLength(0); }
-  {MLineModifierStart}           {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
-	{MLineStart}				   {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
-	{True}						   { currentBlock.appendChild(new HCLValue("boolean","true",yyline,yycolumn,yychar)) ; exitAttribute(); }
-	{False}						   { currentBlock.appendChild(new HCLValue("boolean","false",yyline,yycolumn,yychar)) ; exitAttribute(); }
-  {Null}              { currentBlock.appendChild(new HCLValue("null",null,yyline,yycolumn,yychar)) ; exitAttribute(); }
-	{DigitValue}				   { currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
-	{EvaluatedExpression}          { startEvalExpression(); }
-	{Comment}                      { /* ignore */ }
-	{WhiteSpace}                   { /* ignore */ }
+  {ForExpr}               { yybegin(FORLOOPEXPRESSION); yypushback(yylength()); }
+  \[                      { startArray();/* process an array */ }
+  {MapBlockStart}         { startMap(); yypushback(yylength()-1) ; yybegin(HCLMAP);}
+  \{                      {  blockNames = new ArrayList<String>(); blockNames.add(currentBlock.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
+  \"                      {yybegin(STRINGDOUBLE); string.setLength(0); }
+  {MLineModifierStart}    {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
+  {MLineStart}            {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
+  {True}                  { currentBlock.appendChild(new HCLValue("boolean","true",yyline,yycolumn,yychar)) ; exitAttribute(); }
+  {False}                 { currentBlock.appendChild(new HCLValue("boolean","false",yyline,yycolumn,yychar)) ; exitAttribute(); }
+  {Null}                  { currentBlock.appendChild(new HCLValue("null",null,yyline,yycolumn,yychar)) ; exitAttribute(); }
+  {DigitValue}            { currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar)) ; exitAttribute(); }
+  {StringPrimitive}       { currentBlock.appendChild(new StringPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
+  {NumberPrimitive}       { currentBlock.appendChild(new NumberPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
+  {BooleanPrimitive}      { currentBlock.appendChild(new BooleanPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
+  {ListPrimitive}         { listPrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); currentBlock.appendChild(listPrimitiveType); yybegin(LISTPRIMITIVETYPE); System.out.println("List Primitive Found"); }
+  {MapPrimitive}          { currentBlock.appendChild(new MapPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
+  {EvaluatedExpression}          { startEvalExpression(); }
+  {Comment}                      { /* ignore */ }
+  {WhiteSpace}                   { /* ignore */ }
 
 }
 
 <EVALUATEDEXPRESSION> {
-	{IdentifierTree}				   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
+  {IdentifierTree}           { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); exitAttribute();}
   \}                             { yypushback(yylength()); exitAttribute(true);  }
-	{LineTerminator}						   { exitAttribute(true);  }
-	{Comment}                      { /* ignore */ }
+  {LineTerminator}               { exitAttribute(true);  }
+  {Comment}                      { /* ignore */ }
   {WhiteSpace}                   { /* ignore */ }
-  [^}\n]+             				   { /* ignore */ }
+  [^}\n]+                        { /* ignore */ }
 }
 
 <FORLOOPEXPRESSION> {
-	{ForObjExpr}     { yybegin(FOROBJECTEXPRESSION); yypushback(yylength()-1);}
-	{ForTupleExpr}   { yybegin(FORTUPLEEXPRESSION); yypushback(yylength()-1);}
+  {ForObjExpr}     { yybegin(FOROBJECTEXPRESSION); yypushback(yylength()-1);}
+  {ForTupleExpr}   { yybegin(FORTUPLEEXPRESSION); yypushback(yylength()-1);}
 }
 
 <FORTUPLEEXPRESSION> {
-    \]                             { exitAttribute(true);  }
-	{Comment}                      { /* ignore */ }
-    {WhiteSpace}                   { /* ignore */ }
-    {LineTerminator}             			   { /* ignore */ }
-  [^\]\n]+            				   { /* ignore */ }
+    \]                           { exitAttribute(true);  }
+  {Comment}                      { /* ignore */ }
+    {WhiteSpace}                 { /* ignore */ }
+    {LineTerminator}             { /* ignore */ }
+  [^\]\n]+                       { /* ignore */ }
 }
 
 <FOROBJECTEXPRESSION> {
-    \}                             { exitAttribute(true);  }
-	{Comment}                      { /* ignore */ }
+    \}                           { exitAttribute(true);  }
+  {Comment}                      { /* ignore */ }
   {WhiteSpace}                   { /* ignore */ }
-  {LineTerminator}             			   { /* ignore */ }
-  [^}\n]+             				   { /* ignore */ }
+  {LineTerminator}               { /* ignore */ }
+  [^}\n]+                        { /* ignore */ }
+}
+
+<LISTPRIMITIVETYPE> {
+  \(                             { /* ignore for now */ }
+  \)                             { exitAttribute(); }
+  {LineTerminator}               { exitAttribute(); }
+  {StringPrimitive}              { listPrimitiveType.subType = new StringPrimitiveType(yyline,yycolumn,yychar); listPrimitiveType = null;}
+  {NumberPrimitive}              { listPrimitiveType.subType = new NumberPrimitiveType(yyline,yycolumn,yychar); listPrimitiveType = null;}
+  {BooleanPrimitive}             { listPrimitiveType.subType = new BooleanPrimitiveType(yyline,yycolumn,yychar); listPrimitiveType = null;}
+  {MapPrimitive}                 { listPrimitiveType.subType = new MapPrimitiveType(yyline,yycolumn,yychar); listPrimitiveType = null;}
+  {Comment}                      { /* ignore */ }
+  {WhiteSpace}                   { /* ignore */ }
 }
 
 

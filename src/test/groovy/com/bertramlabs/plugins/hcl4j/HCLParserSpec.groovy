@@ -1,6 +1,6 @@
 package com.bertramlabs.plugins.hcl4j
 
-import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.Variable
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.*
 import com.bertramlabs.plugins.hcl4j.symbols.Symbol
 import groovy.json.JsonOutput
 import spock.lang.Specification
@@ -180,6 +180,29 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 		results.containsKey('variable') == true
 		results.variable.test instanceof Map
 		results.variable.test.list.size() == 4
+	}
+
+	void "should handle primitive type parsing"() {
+		given:
+		def hcl = '''
+variable {
+	typeString = string
+	typeNumber = number
+	typeBoolean = boolean
+	typeMap = map
+	typeList = list
+	typeListString = list(string)
+}
+		'''
+				HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		then:
+		results.containsKey('variable') == true
+		results.variable.typeString instanceof StringPrimitiveType
+		results.variable.typeList instanceof ListPrimitiveType
+		results.variable.typeListString instanceof ListPrimitiveType
+		results.variable.typeListString.subType instanceof StringPrimitiveType
 	}
 
 

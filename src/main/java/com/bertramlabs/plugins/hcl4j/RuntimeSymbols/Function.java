@@ -4,4 +4,8 @@ public class Function extends EvalSymbol{
 	public Function(String name, Integer line, Integer column,Integer position) {
 		super(name,line,column,position);
 	}
+
+	public String getSymbolName() {
+		return "Function";
+	}
 }

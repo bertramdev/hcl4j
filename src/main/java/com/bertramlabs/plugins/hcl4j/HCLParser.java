@@ -16,6 +16,7 @@
 package com.bertramlabs.plugins.hcl4j;
 
 import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.EvalSymbol;
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.PrimitiveType;
 import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.Variable;
 import com.bertramlabs.plugins.hcl4j.symbols.*;
 
@@ -337,6 +338,8 @@ public class HCLParser {
 			}
 		} else if(symbol instanceof HCLValue) {
 			return processValue((HCLValue) symbol);
+		} else if(symbol instanceof PrimitiveType) {
+			return symbol;
 		} else if(symbol instanceof EvalSymbol) {
 			return processEvaluation((EvalSymbol) symbol);
 		} else if(symbol instanceof HCLAttribute) {
@@ -376,6 +379,7 @@ public class HCLParser {
 			throw new HCLParserException("HCL Attribute value not recognized by parser (not implemented yet).");
 		}
 	}
+
 
 	protected Object processEvaluation(EvalSymbol evalSymbol) {
 //		return null;

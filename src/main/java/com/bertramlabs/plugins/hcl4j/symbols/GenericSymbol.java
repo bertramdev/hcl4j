@@ -92,4 +92,8 @@ public abstract class GenericSymbol implements Symbol {
 		this.column = column;
 		this.position = position;
 	}
+
+	public String toString() {
+		return getSymbolName() + ":" + getName();
+	}
 }

@@ -5,4 +5,8 @@ public class Variable extends EvalSymbol {
 		super(name,line,column,position);
 	}
 
+	public String getSymbolName() {
+		return "Variable";
+	}
+
 }

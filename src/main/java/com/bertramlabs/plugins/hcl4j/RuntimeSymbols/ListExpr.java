@@ -4,4 +4,8 @@ public class ListExpr extends EvalSymbol{
 	public ListExpr(String name, Integer line, Integer column,Integer position) {
 		super(name,line,column,position);
 	}
+
+	public String getSymbolName() {
+		return "ListExpr";
+	}
 }
