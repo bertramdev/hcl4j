@@ -389,7 +389,7 @@ AssignmentExpression = [^]
   {StringPrimitive}       { currentBlock.appendChild(new StringPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
   {NumberPrimitive}       { currentBlock.appendChild(new NumberPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
   {BooleanPrimitive}      { currentBlock.appendChild(new BooleanPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
-  {ListPrimitive}         { listPrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); currentBlock.appendChild(listPrimitiveType); yybegin(LISTPRIMITIVETYPE); System.out.println("List Primitive Found"); }
+  {ListPrimitive}         { listPrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); currentBlock.appendChild(listPrimitiveType); yybegin(LISTPRIMITIVETYPE); }
   {MapPrimitive}          { currentBlock.appendChild(new MapPrimitiveType(yyline,yycolumn,yychar)); exitAttribute();}
   {EvaluatedExpression}          { startEvalExpression(); }
   {Comment}                      { /* ignore */ }
