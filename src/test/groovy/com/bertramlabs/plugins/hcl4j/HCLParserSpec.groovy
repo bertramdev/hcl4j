@@ -206,6 +206,48 @@ variable {
 	}
 
 
+	void "should handle multiple list types"() {
+		given:
+		def hcl = '''
+variable "container_subnet_ids" {
+type = list(string)
+default = ["subnet-72b9162b"]
+}
+
+
+
+variable "yellow_subnet_ids" {
+type = list(string)
+default = ["subnet-72b9162b"]
+}
+'''
+				HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		then:
+		results.containsKey('variable') == true
+		results.variable.yellow_subnet_ids.type  instanceof ListPrimitiveType
+		results.variable.yellow_subnet_ids['default'].size() == 1
+	}
+
+
+	void "should handle method in interpolation syntax"() {
+		given:
+		def hcl = '''
+tags ={
+Author ="Effectual Terraform script"
+Date ="${timestamp()}"
+}
+'''
+ 		HCLParser parser = new HCLParser();
+ 		when:
+ 		def results = parser.parse(hcl)
+ 		then:
+ 		results.tags.Date == '${timestamp()}'
+ 		results.tags.containsKey('name') == false
+	}
+
+
 	void "should handle interpolation syntax"() {
 		given:
 
