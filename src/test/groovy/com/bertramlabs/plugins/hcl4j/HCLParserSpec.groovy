@@ -234,17 +234,41 @@ default = ["subnet-72b9162b"]
 	void "should handle method in interpolation syntax"() {
 		given:
 		def hcl = '''
-tags ={
-Author ="Effectual Terraform script"
-Date ="${timestamp()}"
-}
+		resource "aws_instance" "test" {
+			tags {
+			Author = "Effectual Terraform script"
+			Date ="${timestamp()}"
+			}			
+		}
 '''
  		HCLParser parser = new HCLParser();
  		when:
  		def results = parser.parse(hcl)
  		then:
- 		results.tags.Date == '${timestamp()}'
- 		results.tags.containsKey('name') == false
+ 		results.resource.aws_instance.test.tags.Date == '${timestamp()}'
+ 		
+	}
+
+
+	void "should handle method calls"() {
+		given:
+		def hcl = '''
+		resource "aws_s3_bucket" "demos3" {
+		    bucket = lower(var.bucket_name)
+		    acl = var.acl_value 
+		    
+		    tags = {
+		    Name = var.bucket_name 
+		    Date = timestamp()
+		    } 
+		}
+'''
+ 		HCLParser parser = new HCLParser();
+ 		when:
+ 		def results = parser.parse(hcl)
+ 		then:
+ 		results.resource.aws_s3_bucket.demos3.tags.Name == 'var.bucket_name'
+ 		
 	}
 
 

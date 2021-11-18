@@ -193,7 +193,7 @@ Null = null
 
 StringPrimitive = string
 NumberPrimitive = number
-BooleanPrimitive = boolean
+BooleanPrimitive = bool
 ListPrimitive = list | list*\(
 MapPrimitive = map
 
