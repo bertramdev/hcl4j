@@ -189,9 +189,10 @@ variable {
 	typeString = string
 	typeNumber = number
 	typeBoolean = boolean
-	typeMap = map
+	typeMap = map(number)
 	typeList = list
 	typeListString = list(string)
+	typeSetNumber = set(number)
 }
 		'''
 				HCLParser parser = new HCLParser();
@@ -203,6 +204,8 @@ variable {
 		results.variable.typeList instanceof ListPrimitiveType
 		results.variable.typeListString instanceof ListPrimitiveType
 		results.variable.typeListString.subType instanceof StringPrimitiveType
+		results.variable.typeSetNumber instanceof SetPrimitiveType
+		results.variable.typeMap instanceof MapPrimitiveType
 	}
 
 
@@ -250,26 +253,7 @@ default = ["subnet-72b9162b"]
 	}
 
 
-	void "should handle method calls"() {
-		given:
-		def hcl = '''
-		resource "aws_s3_bucket" "demos3" {
-		    bucket = lower(var.bucket_name)
-		    acl = var.acl_value 
-		    
-		    tags = {
-		    Name = var.bucket_name 
-		    Date = timestamp()
-		    } 
-		}
-'''
- 		HCLParser parser = new HCLParser();
- 		when:
- 		def results = parser.parse(hcl)
- 		then:
- 		results.resource.aws_s3_bucket.demos3.tags.Name == 'var.bucket_name'
- 		
-	}
+
 
 
 	void "should handle interpolation syntax"() {
