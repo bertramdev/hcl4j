@@ -54,6 +54,7 @@ HCLParserException
   Boolean fromMapKey = false;
   HCLAttribute attribute;
   SubTypePrimitiveType subTypePrimitiveType;
+  Integer primitiveDepth = 0;
 
   Symbol currentBlock = null;
   private Symbol hclBlock(List<String> blockNames) {
@@ -430,13 +431,15 @@ AssignmentExpression = [^]
 }
 
 <SUBTYPEPRIMITIVETYPE> {
-  \(                             { /* ignore for now */ }
-  \)                             { exitAttribute(); }
-  {LineTerminator}               { exitAttribute(); }
+  \(                             { primitiveDepth++ ; }
+  \)                             { primitiveDepth--; if(primitiveDepth == 0) {subTypePrimitiveType = null; exitAttribute();} }
+  {LineTerminator}               { subTypePrimitiveType = null; exitAttribute(); }
   {StringPrimitive}              { subTypePrimitiveType.subType = new StringPrimitiveType(yyline,yycolumn,yychar); subTypePrimitiveType = null;}
   {NumberPrimitive}              { subTypePrimitiveType.subType = new NumberPrimitiveType(yyline,yycolumn,yychar); subTypePrimitiveType = null;}
   {BooleanPrimitive}             { subTypePrimitiveType.subType = new BooleanPrimitiveType(yyline,yycolumn,yychar); subTypePrimitiveType = null;}
-  {MapPrimitive}                 { subTypePrimitiveType.subType = new MapPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType = null;}
+  {MapPrimitive}                 { MapPrimitiveType tmpPrimitive = new MapPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType.subType = tmpPrimitive; subTypePrimitiveType = tmpPrimitive;}
+  {ListPrimitive}                 { ListPrimitiveType tmpPrimitive = new ListPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType.subType = tmpPrimitive; subTypePrimitiveType = tmpPrimitive;}
+  {SetPrimitive}                 { SetPrimitiveType tmpPrimitive = new SetPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType.subType = tmpPrimitive; subTypePrimitiveType = tmpPrimitive;}
   {Comment}                      { /* ignore */ }
   {WhiteSpace}                   { /* ignore */ }
 }

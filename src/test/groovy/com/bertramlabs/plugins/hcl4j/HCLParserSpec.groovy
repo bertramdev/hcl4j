@@ -193,6 +193,7 @@ variable {
 	typeList = list
 	typeListString = list(string)
 	typeSetNumber = set(number)
+	typeMapListString = map(list(string))
 }
 		'''
 				HCLParser parser = new HCLParser();
@@ -206,6 +207,9 @@ variable {
 		results.variable.typeListString.subType instanceof StringPrimitiveType
 		results.variable.typeSetNumber instanceof SetPrimitiveType
 		results.variable.typeMap instanceof MapPrimitiveType
+		results.variable.typeMapListString instanceof MapPrimitiveType
+		results.variable.typeMapListString.subType instanceof ListPrimitiveType
+		results.variable.typeMapListString.subType.subType instanceof StringPrimitiveType
 	}
 
 
