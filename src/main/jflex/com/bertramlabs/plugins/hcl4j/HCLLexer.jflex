@@ -172,7 +172,7 @@ TraditionalComment   = "/*" [^*]+ ~"*/" | "/*" "*"+ "/"
 EndOfLineComment     = "//" {InputCharacter}* {LineTerminator}?
 EndOfLineCommentHash     = "#" {InputCharacter}* {LineTerminator}?
 DocumentationComment = "/**" {CommentContent} "*"+ "/"
-CommentContent       = ( [^*] | \*+ [^/*] )* 
+CommentContent       = ( [^*] | \*+ [^/*] )*
 
 AnyChar = [^]
 
@@ -201,7 +201,7 @@ SetPrimitive = set | set*\(
 
 DigitValue = [0-9\.\-]+
 
-HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_]*
+HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_\.]*
 HCLQuotedPropertyName = [\"] [^\r\n]+ [\"]
 
 HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeName} {WhiteSpaceOpt} "{" [^]* "}"
@@ -268,12 +268,12 @@ AssignmentExpression = [^]
 
 /* keywords */
 <YYINITIAL> {
-  /* identifiers */ 
+  /* identifiers */
   {HCLBlock}        {yybegin(HCLBLOCKHEADER);yypushback(yylength()); }
   {HCLAttribute}  {yybegin(HCLATTRIBUTE);yypushback(yylength()); }
   /* comments */
   {Comment}                      { /* ignore */ }
- 
+
   /* whitespace */
   {WhiteSpace}                   { /* ignore */ }
   {AnyChar}                      { /* ignore */ }
@@ -330,7 +330,7 @@ AssignmentExpression = [^]
   {HCLBlock}                     {yybegin(HCLBLOCKHEADER);yypushback(yylength()); }
   {HCLAttribute}           {yybegin(HCLATTRIBUTE);yypushback(yylength()); }
   /* comments */
-  {Comment}                      { /* ignore */ }
+   {Comment}                      { /* ignore */ }
   \}                 { exitAttribute();}
   /* whitespace */
   {WhiteSpace}                   { /* ignore */ }
@@ -341,7 +341,7 @@ AssignmentExpression = [^]
   {HCLAttributeName}             {startAttribute(yytext());}
     \=                              {yybegin(HCLATTRIBUTEVALUE); }
     /* whitespace */
-    {WhiteSpace}                   { /* ignore */ } 
+    {WhiteSpace}                   { /* ignore */ }
 }
 
 
