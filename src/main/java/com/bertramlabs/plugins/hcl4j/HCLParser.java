@@ -15,17 +15,12 @@
  */
 package com.bertramlabs.plugins.hcl4j;
 
-import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.EvalSymbol;
-import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.PrimitiveType;
-import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.Variable;
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.*;
 import com.bertramlabs.plugins.hcl4j.symbols.*;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Parser for the Hashicorp Configuration Language (HCL). This is the primary endpoint and converts the HCL syntax into a {@link Map}.
@@ -47,10 +42,60 @@ import java.util.Map;
  */
 public class HCLParser {
 
+	//Time to parse the AST Tree into a Map
+	protected Map<String,Object> result = new LinkedHashMap<>();
+	protected Map<String,Object> variables = new LinkedHashMap<>();
+	protected Map<String,HCLFunction> functionRegistry = new LinkedHashMap<>();
 
 	public HCLParser() {
-
+		HCLBaseFunctions.registerBaseFunctions(this);
 	}
+
+	/**
+	 * Parses Var  files into the variables context (example would be a tfvars file from terraform)
+	 * @param input String input containing HCL syntax
+	 * @return Mapped result of object tree coming from HCL (values of keys can be variable).
+	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
+	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
+	 */
+	public Map<String,Object> parseVars(String input, Boolean ignoreParseException) throws HCLParserException, IOException {
+		HCLParser  varLoader = new HCLParser();
+		Map<String,Object> results = varLoader.parse(input,ignoreParseException);
+		for(String key : results.keySet()) {
+			variables.put(key,results.get(key));
+		}
+		return variables;
+	}
+
+	/**
+	 * Registers Function implementations for HCL Common functions. By default the {@link HCLBaseFunctions} are loaded.
+	 * Additional functions can be defined via this method for custom method overrides if necessary.
+	 * @param functionName the name of the function to be called
+	 * @param function the lambda function implementation to be evaluated during the parse
+	 */
+	public void registerFunction(String functionName, HCLFunction function) {
+		this.functionRegistry.put(functionName,function);
+	}
+
+	/**
+	 * Sets a variable value individually. One can also use the parseTfVars method to load tf vars.
+	 * @param variableName the name of the variable being defined
+	 * @param value the value of the variable
+	 */
+	public void setVariable(String variableName, Object value) {
+		this.variables.put(variableName,value);
+	}
+
+	/**
+	 * Sets a Map of variables into the context of the HCLParser for parse runtime operations
+	 * @param variableMap A Map of variables to be bulk applied to the parser Context
+	 */
+	public void setVariables(Map<String,Object> variableMap) {
+		for(String key : variableMap.keySet()) {
+			variables.put(key,variableMap.get(key));
+		}
+	}
+
 
 	/**
 	 * Parses terraform configuration language from a String
@@ -265,18 +310,228 @@ public class HCLParser {
 
 		rootBlocks = lexer.elementStack;
 
-		//Time to parse the AST Tree into a Map
-		Map<String,Object> result = new LinkedHashMap<>();
 
+		result = new LinkedHashMap<>();
 		Map<String,Object> mapPosition = result;
 
 		for(Symbol currentElement : rootBlocks) {
-			processSymbol(currentElement,mapPosition);
-
+			processSymbolPass1(currentElement,mapPosition);
 		}
+
+		//pass2
+		for(String key : result.keySet()) {
+				processSymbolPass2(result.get(key),result);
+		}
+//		System.out.println(result);
 		return result;
 	}
 
+
+	private Object processSymbolPass1(Symbol symbol, Map<String,Object> mapPosition) throws HCLParserException {
+
+		if(symbol instanceof HCLBlock) {
+			HCLBlock block = (HCLBlock)symbol;
+			for(int counter = 0 ; counter < block.blockNames.size() ; counter++) {
+				String blockName = block.blockNames.get(counter);
+				if(mapPosition.containsKey(blockName)) {
+					if(counter == block.blockNames.size() - 1 && mapPosition.get(blockName) instanceof Map) {
+						List<Map<String,Object>> objectList = new ArrayList<>();
+						Map<String,Object> addedObject = new LinkedHashMap<String,Object>();
+						objectList.add((Map)mapPosition.get(blockName));
+						objectList.add(addedObject);
+						mapPosition.put(blockName,objectList);
+						mapPosition = addedObject;
+					} else if(mapPosition.get(blockName) instanceof Map) {
+						mapPosition = (Map<String,Object>) mapPosition.get(blockName);
+					} else if(counter == block.blockNames.size() - 1 && mapPosition.get(blockName) instanceof List) {
+						Map<String,Object> addedObject = new LinkedHashMap<String,Object>();
+						((List<Map>)mapPosition.get(blockName)).add(addedObject);
+						mapPosition = addedObject;
+					} else {
+						if(mapPosition.get(blockName) instanceof List) {
+							throw new HCLParserException("HCL Block expression scope traverses an object array");
+						} else {
+							throw new HCLParserException("HCL Block expression scope traverses an object value");
+						}
+					}
+				} else {
+					mapPosition.put(blockName,new LinkedHashMap<String,Object>());
+					mapPosition = (Map<String,Object>) mapPosition.get(blockName);
+				}
+			}
+			if(symbol.getChildren() != null) {
+				for(Symbol child : block.getChildren()) {
+					processSymbolPass1(child,mapPosition);
+				}
+			}
+			return mapPosition;
+		} else if(symbol instanceof HCLMap) {
+			Map<String,Object> nestedMap = new LinkedHashMap<>();
+			if(symbol.getChildren() != null) {
+				for(Symbol child : symbol.getChildren()) {
+					processSymbolPass1(child, nestedMap);
+				}
+			}
+			return nestedMap;
+		} else if(symbol instanceof HCLArray) {
+			if(symbol.getChildren() != null) {
+				List<Object> objectList = new ArrayList<>();
+				for(Symbol child : symbol.getChildren()) {
+					Map<String,Object> nestedMap = new LinkedHashMap<>();
+					Object result = processSymbolPass1(child,nestedMap);
+					objectList.add(result);
+				}
+				return objectList;
+			} else {
+				return null;
+			}
+		} else if(symbol instanceof HCLValue) {
+			return processValue((HCLValue) symbol);
+		} else if(symbol instanceof PrimitiveType) {
+			return symbol;
+		} else if(symbol instanceof EvalSymbol) {
+			return processEvaluation((EvalSymbol) symbol,null);
+		} else if(symbol instanceof HCLAttribute) {
+			if(symbol.getChildren().size() == 1 && symbol.getChildren().get(0) instanceof HCLBlock) {
+				Object results = null;
+				Map<String,Object> nestedMap = new LinkedHashMap<>();
+				results = processSymbolPass1(symbol.getChildren().get(0),nestedMap);
+				mapPosition.put(symbol.getName(),results);
+			} else {
+				mapPosition.put(symbol.getName(),symbol);
+			}
+
+			return mapPosition;
+		}
+		return null;
+	}
+
+	private Object processSymbolPass2(Object val, Map<String,Object> mapPosition) throws HCLParserException {
+
+
+		if(val instanceof Map) {
+			Map<String, Object> subMap = (Map<String, Object>) (val);
+			for (String key : subMap.keySet()) {
+				processSymbolPass2(subMap.get(key), subMap);
+			}
+		} else if(val instanceof ArrayList) {
+			ArrayList currentCollection = (ArrayList)(val);
+			for(int x=0;x<currentCollection.size();x++) {
+				Object obj = currentCollection.get(x);
+				Object res = processSymbolPass2(obj,mapPosition);
+				if(res != null) {
+					currentCollection.set(x,res);
+				}
+			}
+		} else if(val instanceof HCLMap) {
+			 HCLMap symbol = (HCLMap)(val);
+			Map<String,Object> nestedMap = new LinkedHashMap<>();
+			if((symbol.getChildren() != null)) {
+				for(Symbol child : symbol.getChildren()) {
+					processSymbolPass2(child, nestedMap);
+				}
+			}
+			return nestedMap;
+		} else if(val instanceof HCLArray) {
+			 HCLArray symbol = (HCLArray)(val);
+			if(symbol.getChildren() != null) {
+				List<Object> objectList = new ArrayList<>();
+				for(Symbol child : symbol.getChildren()) {
+					Map<String,Object> nestedMap = new LinkedHashMap<>();
+					Object result = processSymbolPass2(child,nestedMap);
+					objectList.add(result);
+				}
+				return objectList;
+			} else {
+				return null;
+			}
+		} else if(val instanceof HCLValue) {
+			return processValue((HCLValue) val);
+		} else if(val instanceof PrimitiveType) {
+			return val;
+		} else if(val instanceof EvalSymbol) {
+			return processEvaluation((EvalSymbol) val,null);
+		} else if(val instanceof HCLAttribute || val instanceof GroupedExpression) {
+			 Symbol symbol = (Symbol) val;
+			Map<String,Object> nestedMap = new LinkedHashMap<>();
+			if(symbol.getChildren().size() > 0) {
+				Object results = null;
+				for(int x = 0;x<symbol.getChildren().size();x++) {
+					Symbol child = symbol.getChildren().get(x);
+					if(child instanceof Operator) {
+						switch(child.getName()) {
+							case "+":
+								if(results instanceof String) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null) {
+										results = (String)results + rightResult.toString();
+									} else {
+										//TODO: Exception?
+									}
+								} else if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results + (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+
+								}
+								break;
+							case "-":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results - (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "/":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results / (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "*":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results * (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+						}
+					} else {
+						results = processSymbolPass2(child,nestedMap);
+					}
+				}
+
+				if(symbol instanceof GroupedExpression) {
+					return results;
+				} else {
+					mapPosition.put(symbol.getName(),results);
+				}
+
+			} else {
+				if(symbol instanceof GroupedExpression) {
+					return null;
+				} else {
+					mapPosition.put(symbol.getName(),null);
+				}
+
+			}
+			return mapPosition;
+		}
+		return null;
+	}
 
 	private Object processSymbol(Symbol symbol, Map<String,Object> mapPosition) throws HCLParserException {
 
@@ -341,16 +596,83 @@ public class HCLParser {
 		} else if(symbol instanceof PrimitiveType) {
 			return symbol;
 		} else if(symbol instanceof EvalSymbol) {
-			return processEvaluation((EvalSymbol) symbol);
-		} else if(symbol instanceof HCLAttribute) {
+			return processEvaluation((EvalSymbol) symbol,null);
+		} else if(symbol instanceof HCLAttribute || symbol instanceof GroupedExpression) {
 			Map<String,Object> nestedMap = new LinkedHashMap<>();
 			if(symbol.getChildren().size() > 0) {
-				Object results = processSymbol(symbol.getChildren().get(0),nestedMap);
-				mapPosition.put(symbol.getName(),results);
-			} else {
-				mapPosition.put(symbol.getName(),null);
-			}
+				Object results = null;
+				for(int x = 0;x<symbol.getChildren().size();x++) {
+					Symbol child = symbol.getChildren().get(x);
+					if(child instanceof Operator) {
+						switch(child.getName()) {
+							case "+":
+								if(results instanceof String) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null) {
+										results = (String)results + rightResult.toString();
+									} else {
+										//TODO: Exception?
+									}
+								} else if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results + (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
 
+								}
+								break;
+							case "-":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results - (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "/":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results / (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "*":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results * (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+						}
+					} else {
+						results = processSymbol(symbol.getChildren().get(0),nestedMap);
+					}
+				}
+
+				if(symbol instanceof GroupedExpression) {
+					return results;
+				} else {
+					mapPosition.put(symbol.getName(),results);
+				}
+
+			} else {
+				if(symbol instanceof GroupedExpression) {
+					return null;
+				} else {
+					mapPosition.put(symbol.getName(),null);
+				}
+
+			}
 			return mapPosition;
 		}
 		return null;
@@ -380,13 +702,169 @@ public class HCLParser {
 		}
 	}
 
+	protected Object evaluateFunctionCall(String functionName,Function functionSymbol) throws HCLParserException {
+		if(functionRegistry.get(functionName) != null) {
+			HCLFunction functionMethod = functionRegistry.get(functionName);
+			ArrayList<Object> functionArguments = new ArrayList<>();
+			for(Symbol child : functionSymbol.getChildren()) {
+				Object elementResult = null;
+				if(child instanceof EvalSymbol) {
+					elementResult = processEvaluation((EvalSymbol) child,null);
+				} else if(child instanceof  Symbol) {
+					elementResult = processSymbol(child,result);
+				}
+				functionArguments.add(elementResult);
+			}
+			return functionMethod.method(functionArguments);
+		} else {
+			//TODO: DO we throw a method missing exception at some point
+			return null;
+		}
+	}
+	protected Object processEvaluation(EvalSymbol evalSymbol, Object context) throws HCLParserException{
+		Boolean variableLookup  = false;
+		if(evalSymbol instanceof VariableTree) {
+			for(int x = 0;x<evalSymbol.getChildren().size();x++) {
+				Symbol child = evalSymbol.getChildren().get(x);
+				if(child instanceof Variable && evalSymbol.getChildren().size() > x+1 && evalSymbol.getChildren().get(x+1) instanceof Function) {
+					//This may not be necessary anymore but is there to catch a function traversal potential error
+					return evaluateFunctionCall(child.getName(),(Function)(evalSymbol.getChildren().get(x+1)));
+				}else if(child instanceof Variable) {
+					if(context == null && x == 0) {
+						switch(child.getName()) {
+							case "local":
+								context = result.get("locals");
+								break;
+							case "var":
+								variableLookup = true;
+								context = variables;
+								break;
+							default:
+								context = result.get(child.getName());
+						}
 
-	protected Object processEvaluation(EvalSymbol evalSymbol) {
-//		return null;
-		if(evalSymbol instanceof Variable) {
+					} else if(context != null){
+						context = ((Map)context).get(child.getName());
+						if(variableLookup && context == null) {
+							if(result.get("variable") != null) {
+								Map variableDefinitions = (Map)( result.get("variable"));
+								Map varDefinition = (Map)(variableDefinitions.get(child.getName()));
+								if(varDefinition != null) {
+									return varDefinition.get("default");
+								} else {
+									return null;
+								}
+
+							}
+						}
+					}
+
+				} else if(child instanceof HCLArray && context != null) {
+					//TODO: If there are more elements throw exception
+					Symbol firstElement = child.getChildren().get(0);
+					Object elementResult = null;
+					if(firstElement instanceof EvalSymbol) {
+						elementResult = processEvaluation((EvalSymbol) firstElement,null);
+					} else if(firstElement instanceof  HCLValue) {
+						elementResult = processValue((HCLValue)firstElement);
+					}
+					if(elementResult != null && elementResult instanceof String) {
+						context = ((Map)context).get(elementResult);
+					} else if (elementResult != null && elementResult instanceof Double) {
+						//index position
+						Double elementDouble = (Double)elementResult;
+						context = ((List)context).get(elementDouble.intValue());
+					} else {
+						context = null;
+					}
+
+				}
+			}
+			if(context != null) {
+				if(context instanceof HCLAttribute) {
+					LinkedHashMap<String,Object> nestedMap = new LinkedHashMap<>();
+					context = processSymbolPass2(context,nestedMap);
+					//not my favorite way to grab this value but works for now
+					for(String key : nestedMap.keySet()) {
+						context = nestedMap.get(key);
+					}
+				}
+				return context;
+			} else {
+				return evalSymbol;
+			}
+
+		}
+		else if(evalSymbol instanceof Function) {
+			Function thisFunction = (Function)evalSymbol;
+			if(thisFunction.getName() != null && thisFunction.getName().length() > 0) {
+				return evaluateFunctionCall(thisFunction.getName(),thisFunction);
+			} else {
+				return null;
+			}
+		}
+		else if(evalSymbol instanceof Variable || evalSymbol instanceof ComputedTuple || evalSymbol instanceof ComputedObject) {
 			return evalSymbol;
 		} else {
 			return null;
 		}
+	}
+
+	protected Object evaluateEvalSymbol(EvalSymbol evalSymbol) {
+		if(evalSymbol instanceof Variable) {
+			return evaluateVariable((Variable) evalSymbol);
+		} else if(evalSymbol instanceof Function) {
+			return null;
+		} else if(evalSymbol instanceof ComputedTuple) {
+			return null;
+		}
+		return null;
+	}
+
+	protected Object evaluateVariable(Variable var) {
+
+		String[] variableArguments = var.getName().split("\\.");
+		Object currentVariableObject = null;
+		for(int x=0;x<variableArguments.length;x++) {
+			if(currentVariableObject == null && x > 0) {
+				return null; //dont error for now
+			}
+			String variableElement = variableArguments[x];
+			String varName = variableElement;
+			Boolean accessElement = false;
+			if(variableElement.indexOf("[") > -1) {
+				varName = variableElement.substring(0,variableElement.indexOf("["));
+				accessElement = true;
+			}
+			currentVariableObject = getVariableObject(varName,currentVariableObject);
+
+		}
+		return currentVariableObject;
+	}
+
+	protected Object getVariableObject(String varName, Object source) {
+		if(source != null && source instanceof Map) {
+			return ((Map<String,Object>)source).get(varName);
+		} else {
+			switch(varName) {
+				case "local":
+					if(result.get("locals") != null) {
+						Map<String,Object> localVariables = ((Map<String,Object>)(result.get("locals")));
+						return localVariables.get(varName);
+					} else {
+						return null;
+					}
+				case "var":
+					if(result.get("variable") != null) {
+						Map<String,Object> variableEntries = ((Map<String,Object>)(result.get("variable")));
+						return variableEntries.get(varName);
+					} else {
+						return null;
+					}
+				default:
+					return result.get(varName);
+			}
+		}
+
 	}
 }

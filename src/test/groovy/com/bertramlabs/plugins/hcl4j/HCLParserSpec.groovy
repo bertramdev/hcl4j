@@ -553,40 +553,109 @@ array_set = [ "test", #comment goes here
 //		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.array_set instanceof Variable
+		results.array_set.getChildren().size() > 0
 		results.array_set.name == 'myvariable.user'
 	}
 
-	void "it should ignore complex evaluation symbols for now"() {
+	void "substr should function correctly"() {
 		given:
 		def hcl = '''
-		array_set = ( myvariable.name.lower(a,b) + blah.blah + 2 )
-'''
-		HCLParser parser = new HCLParser();
-		when:
-		def results = parser.parse(hcl)
-//		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
-		then:
-		results.array_set == null
-
-	}
-
-	void "it should ignore complex for loops for now"() {
-		given:
-		def hcl = '''
-output "instance_public_ip_addresses" {
-  value = {
-    for instance in aws_instance.example:
-    instance.id => instance.public
-    if instance.associate_public_ip_address
-  }
-}
+test1 = substr("hello world", 1, 4)
+test2 = substr("hello world", -5, -1)
+test3 = substr("hello world", 6, 10)
 '''
 		HCLParser parser = new HCLParser();
 		when:
 		def results = parser.parse(hcl)
 		then:
-		results.output != null
+		results.test1 == "ello"
+		results.test2 == "world"
+		results.test3 == "world"
 	}
+
+
+	void "format should function correctly"() {
+		given:
+		def hcl = '''
+test1 = format("%s %s", "hello", "world")
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.test1 == "hello world"
+	}
+
+	void "it should runtime evaluate variables"() {
+		given:
+
+		def tfvars = '''
+test_var = "testvar1"
+'''
+		def hcl = '''
+        variable "test_var" {
+          default = "blah"
+        }
+        variable "code_var" {
+          default="local_code"
+        }
+
+		locals {
+		  local_var = "localvar1"
+		  my_tags = ["A","B","C"]
+		  local_code = "localcode1"
+		  start = 1
+		  end = 3
+		}
+		
+		resource "test" "me" {
+		 name = upper(local.local_var)
+		 description = var.test_var
+		 should_not_exist = var.null_var
+		 code = local[var.code_var]
+		 label = lower(local.my_tags[1])
+		 labelContains = contains(local.my_tags,"C")
+		 math = local.start + local.end
+		 operations = 2 + 4 / 2
+		 operationsOrder = 2 + (4 / 2)
+		}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		parser.parseVars(tfvars,false);
+		def results = parser.parse(hcl)
+		then:
+		results.resource.test.me.name == "LOCALVAR1"
+		results.resource.test.me.description == "testvar1"
+		results.resource.test.me.code == "localcode1"
+		results.resource.test.me.label == "b"
+		results.resource.test.me.labelContains == true
+		results.resource.test.me.math == 4
+		results.resource.test.me.should_not_exist == null
+		results.resource.test.me.operations == 3
+		results.resource.test.me.operationsOrder == 4
+
+	}
+
+
+
+//	void "it should ignore complex for loops for now"() {
+//		given:
+//		def hcl = '''
+//output "instance_public_ip_addresses" {
+//  value = {
+//    for instance in aws_instance.example:
+//    instance.id => instance.public
+//    if instance.associate_public_ip_address
+//  }
+//}
+//'''
+//		HCLParser parser = new HCLParser();
+//		when:
+//		def results = parser.parse(hcl)
+//		then:
+//		results.output != null
+//	}
 
 
 	void "it should handle closing block on same line as value hcl2"() {
@@ -705,6 +774,361 @@ resource "aws_launch_configuration" "web" {
 		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.resource["aws_launch_configuration"]["web"]?.user_data != null
+	}
+
+	void "it should handle nested for tuples"() {
+		given:
+		def hcl = '''
+locals {
+swagger_path_method_parameters = [for my_value in local.swagger_path_methods_split: 
+      [for method_name, method_value in local.json_data["paths"][my_value[0]][my_value[1]]: format("%s:::%s:::%s", my_value[0], my_value[1], method_name)
+      ]
+    ]
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["swagger_path_method_parameters"] != null
+
+	}
+
+	void "it should handle sample tf from wu"() {
+		given:
+			def hcl = '''
+#
+#
+# TODO: 2/10/2022: Modify code to handle all "headers" in resource.method.params
+  # modify the filter in swagger_path_method_parameter_headers -> only filter on header_dict["in"]
+  # modoify the static list of required_value{}
+  # Add the final list of scoped optional values (will be a lot +++) to data_set_api_gateway_configuration_data_request_parameters
+
+locals {
+  #
+  # OnePoint Utility Server
+  opm_utility_server = "10.39.5.165:80"
+  #
+  # HARDCODED
+  cloud_name = lower("wureach-np")
+  swagger_s3_bucket = "wanv-san-0-poc-s3-poc-9003"
+  #
+  # Morpheus Cloud Profile
+  authorizor_aws_region =  {"name":var.opm_morphues_region}
+  authorizor_aws_caller_identity = {"account_id": var.account_number}
+  deploment_stage_logs_region = {"name":var.opm_morphues_region}
+  deploment_stage_logs_identity = {"account_id": var.account_number}
+  #
+  # Morpheus Inputs
+  s3_folder = replace(lower(local.AppName), "/\\\\s+/", "")
+  swagger_file_name =  "<%=customOptions.sidecarListOfS3BucketFolder%>"
+  wu_aws_api_gateway_rest_api = "<%=instance.name%>"
+  wu_aws_api_gateway_rest_api_description = "<%=customOptions.apiGatewayDescription%>"
+  mule_asset_id = "<%=customOptions.mule_asset_id%>"
+  mule_group_id = "<%=customOptions.mule_group_id%>"
+  swagger_file_version = "<%=customOptions.ot_swagger_file_version%>"
+  authorizer_lambda_function = "<%=customOptions.sidecarListOfLambdas%>"
+  authorizer_uri = "arn:aws:apigateway:${local.authorizor_aws_region.name}:lambda:path/2015-03-31/functions/arn:aws:lambda:${local.authorizor_aws_region.name}:${local.authorizor_aws_caller_identity.account_id}:function:${local.authorizer_lambda_function}/invocations"
+  deployment_stage_name = "dev"
+  deployment_stage_var_port = 8201
+  deployment_stage_var_hostname = local.target_endpoint_host
+  deployment_stage_var_4xxCodeName = "<%=customOptions.deployment_stage_var_4xxCodeName%>"
+  deployment_stage_var_5xxCodeName = "<%=customOptions.deployment_stage_var_5xxCodeName%>"
+  deployment_stage_setting_throttle_rate = tonumber("<%=customOptions.deployment_stage_setting_throttle_rate%>")
+  deployment_stage_setting_throttle_burst = tonumber("<%=customOptions.deployment_stage_setting_throttle_burst%>")
+  vpc_endpoint = var.vpc_endpoint == "null" ? "<%=customOptions.sidecarListOfVPCEndpointsApiGateway%>" : var.vpc_endpoint
+  integration_aws_api_gateway_vpc_link = "<%=customOptions.sidecarListOfVPCLink%>"
+  target_endpoint_host = "<%=customOptions.sidecarListOfTargetEndpointHosts%>"
+  gateway_response_type = "<%=customOptions.ag_gateway_response_type%>"
+  
+  #
+  # Terraform Native for this file
+  json_file = data.http.opm_utility_server.body
+  json_data = jsondecode(local.json_file)
+  
+  #
+  # This block of code, creates the STATIC param/attribute values for api_gateway_integration resource
+  swagger_paths = [for index, value in keys(local.json_data["paths"]): value]
+  swagger_path_methods = [for index, value in local.swagger_paths: [for method_name, method_value in local.json_data["paths"][value]: format("%s:::%s", value, method_name)]]
+  swagger_path_methods_flat = flatten([for my_index, my_list in local.swagger_path_methods: my_list])
+  swagger_path_methods_split = [for my_value in local.swagger_path_methods_flat: split(":::", my_value)]
+  
+
+  #
+  # This block of code  will determine which resource_methods should have the extra REQUEST PARAMS
+  swagger_path_method_parameters = [for my_value in local.swagger_path_methods_split: 
+      [for method_name, method_value in local.json_data["paths"][my_value[0]][my_value[1]]: format("%s:::%s:::%s", my_value[0], my_value[1], method_name)
+      if method_name == "parameters"
+      ]
+    ]
+  swagger_path_method_parameters_flat = flatten([for my_index, my_list in local.swagger_path_method_parameters: my_list])
+  swagger_path_method_parameters_split = [for my_value in local.swagger_path_method_parameters_flat: split(":::", my_value)]
+  swagger_path_method_parameter_headers = [for my_value in local.swagger_path_method_parameters_split: 
+      [for header_dict in local.json_data["paths"][my_value[0]][my_value[1]][my_value[2]]: 
+        format("%s:::%s:::%s:::%s", my_value[0], my_value[1], my_value[2], header_dict["name"])
+      if 
+      (["x-wu-externalRefId", "x-api-key", "x-wu-utkn"], header_dict["name"])
+      ]
+    ]
+  swagger_path_method_parameter_headers_flat = flatten([for my_index, my_list in local.swagger_path_method_parameter_headers: my_list])
+  swagger_path_method_parameter_headers_split = [for my_value in local.swagger_path_method_parameter_headers_flat: split(":::", my_value)]
+    
+  #
+  #  # Create the aws_api_gateway_integration Request Parameters
+  required_value = {
+      "integration.request.header.x-wu-correlationId" = "context.requestId",
+      "integration.request.header.x-wu-tenantId" = "context.tenantId",
+      "integration.request.header.x-wu-authPrincipal" = "context.authorizer.cid",
+      "integration.request.header.x-wu-tokenClm" = "context.authorizer.clm",
+      "integration.request.header.x-wu-apiKey" = "method.request.header.x-api-key",
+      "integration.request.header.x-wu-externalRefId" = "method.request.header.x-wu-externalRefId",
+      "integration.request.header.x-api-key" = "method.request.header.x-api-key",
+      "integration.request.header.x-wu-utkn" = "method.request.header.x-wu-utkn"
+  }
+  data_set_api_gateway_configuration_data_request_parameters = {for resource_method in local.swagger_path_methods_flat: resource_method => 
+    {"request_params" = local.required_value}
+  }
+  data_set_api_gateway_configuration_data_from_data_sources = flatten([ for resource_method in local.swagger_path_methods_flat:
+    [for data_resource_item in data.aws_api_gateway_resource.parent: 
+      {"${resource_method}" = {"resource_id" = data_resource_item["id"],
+        "rest_api_id" = aws_api_gateway_rest_api.parent.id,
+        "connection_id" = local.integration_aws_api_gateway_vpc_link,
+        "uri" = "https://$${stageVariables.hostName}:$${stageVariables.portNumber}${data_resource_item.path}"
+        }
+      }
+    if split(":::",resource_method)[0] == data_resource_item.path
+    ]
+    ]
+  )
+  data_set_api_gateway_configuration_data_static = {for my_value in local.swagger_path_methods_split: format("%s:::%s", my_value[0], my_value[1]) => 
+    { "path" = my_value[0],
+      "type" = "HTTP_PROXY",
+      "method" =  upper(my_value[1]),
+      "passthrough" = "WHEN_NO_TEMPLATES", 
+      "connection" = "VPC_LINK", 
+      "timeout" = 29000}
+  }
+  final_data_model_for_api_integration = {for idx,resource_method in local.swagger_path_methods_flat: 
+    resource_method => merge(
+      local.data_set_api_gateway_configuration_data_static[resource_method],
+      local.data_set_api_gateway_configuration_data_request_parameters[resource_method],
+      local.data_set_api_gateway_configuration_data_from_data_sources[idx][resource_method]
+    )
+    if lookup(local.data_set_api_gateway_configuration_data_static, resource_method, "None") != "None"  
+  }
+ 
+}
+##########################################
+# Modified Swagger Data
+##########################################
+data "http" "opm_utility_server" {
+  url = "http://${local.opm_utility_server}/create/?cloud_name=${local.cloud_name}&bucket=${local.swagger_s3_bucket}&morpheus_instance_name=${local.wu_aws_api_gateway_rest_api}&application_folder_name=${local.s3_folder}&authorizer_uri=${local.authorizer_uri}&asset_id=${local.mule_asset_id}&group_id=${local.mule_group_id}&version_num=${local.swagger_file_version}&gateway_response_type=${local.gateway_response_type}"
+  # Optional request headers
+  request_headers = {
+    Accept = "application/json"
+    Authorization = local.bearer_token_opm_utility
+  }
+}
+
+##########################################
+# RestApi
+##########################################
+resource "aws_api_gateway_rest_api" "parent" {
+  name        = local.wu_aws_api_gateway_rest_api
+  # commenting out since we removed from UI, this has introduced a bug where all API are having NULL as description
+  # by commenting out the body argument will use the description from the Swagger file if there is one in place
+  # description = local.wu_aws_api_gateway_rest_api_description
+  body = data.http.opm_utility_server.body
+  policy      = <<EOF
+  {
+   "Version": "2012-10-17",
+   "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+            "Service": ["apigateway.amazonaws.com","lambda.amazonaws.com"]
+        },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+    }
+    EOF
+  endpoint_configuration {
+    types = ["PRIVATE"]
+    vpc_endpoint_ids = [local.vpc_endpoint]
+  }
+  tags = {
+    Name = local.wu_aws_api_gateway_rest_api
+  }
+}
+
+
+
+###########################################
+## RestApi Top Level Policy
+###########################################
+resource "aws_api_gateway_rest_api_policy" "parent" {
+  rest_api_id = aws_api_gateway_rest_api.parent.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "*"
+      },
+      "Action": "execute-api:Invoke",
+      "Resource": "${aws_api_gateway_rest_api.parent.execution_arn}",
+      "Condition": {
+        "StringEquals": {
+          "aws:SourceVpce": "${local.vpc_endpoint}"
+        }
+      }
+    }
+  ]
+}
+EOF
+}
+
+##########################################
+# API Authorizer
+##########################################
+#Commenting out, we have moved this into the python OPM service
+#resource "aws_api_gateway_authorizer" "parent" {
+#  name                   = aws_api_gateway_rest_api.parent.name
+#  rest_api_id            = aws_api_gateway_rest_api.parent.id
+#  authorizer_uri         = local.authorizer_uri
+#  identity_source        = "method.request.header.Authorization"
+#  authorizer_result_ttl_in_seconds = 60
+#  type = "REQUEST"
+#}
+
+##########################################
+# Paths, PathParts
+##########################################
+data "aws_api_gateway_resource" "parent" {
+  for_each = local.json_data.paths
+  rest_api_id = aws_api_gateway_rest_api.parent.id
+  path        = each.key
+}
+
+##########################################
+# API Resource Method REQUEST Integrations
+##########################################
+
+resource "aws_api_gateway_integration" "parent" {
+  for_each = local.final_data_model_for_api_integration
+  type        = each.value["type"]
+  http_method = each.value["method"]
+  integration_http_method =  each.value["method"]
+  passthrough_behavior = each.value["passthrough"]
+  resource_id = each.value["resource_id"]
+  rest_api_id = each.value["rest_api_id"]
+  connection_type = each.value["connection"]
+  connection_id   = each.value["connection_id"]
+  timeout_milliseconds = each.value["timeout"]
+  request_parameters = each.value["request_params"]
+  uri = each.value["uri"]
+}
+
+
+###########################################
+## API Gateway Deployment
+###########################################
+resource "aws_api_gateway_deployment" "parent" {
+  rest_api_id = aws_api_gateway_rest_api.parent.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
+  depends_on = [aws_api_gateway_integration.parent]
+}
+
+resource "aws_api_gateway_stage" "parent" {
+  rest_api_id   = aws_api_gateway_rest_api.parent.id
+  deployment_id = aws_api_gateway_deployment.parent.id
+  stage_name    = local.deployment_stage_name
+  access_log_settings {
+    destination_arn = "arn:aws:logs:${local.deploment_stage_logs_region.name}:${local.deploment_stage_logs_identity.account_id}:log-group:API-Gateway-Access-Logs_${aws_api_gateway_rest_api.parent.id}/${local.deployment_stage_name}"
+    format = "{ \\"requestId\\":$context.requestId,    \\"extendedRequestId\\":$context.extendedRequestId,    \\"ip\\":$context.identity.sourceIp,     \\"caller\\":$context.identity.caller,     \\"user\\":$context.identity.user,    \\"requestTime\\":$context.requestTime,    \\"httpMethod\\":$context.httpMethod,    \\"resourcePath\\":$context.resourcePath,    \\"status\\":$context.status,    \\"protocol\\":$context.protocol,    \\"responseLength\\":$context.responseLength,    \\"responseLatency\\":$context.responseLatency,    \\"apiKeyId\\":$context.identity.apiKeyId,    \\"integrationLatency\\":$context.integrationLatency,    \\"authorizeLatency\\":$context.authorize.latency,    \\"authorizerLatency\\":$context.authorizer.latency,    \\"authenticateLatency\\":$context.authenticate.latency"
+    }
+  variables = {    "portNumber": local.deployment_stage_var_port,    "hostName": local.deployment_stage_var_hostname,    "default4XXErrorCode": local.deployment_stage_var_4xxCodeName,    "default5XXErrorCode": local.deployment_stage_var_5xxCodeName,  }
+}
+
+resource "aws_api_gateway_method_settings" "parent" {
+  method_path = "*/*"
+  rest_api_id = aws_api_gateway_rest_api.parent.id
+  stage_name  = aws_api_gateway_stage.parent.stage_name
+  
+  settings {
+    metrics_enabled = true
+    logging_level   = "ERROR"
+    throttling_rate_limit = local.deployment_stage_setting_throttle_rate
+    throttling_burst_limit = local.deployment_stage_setting_throttle_burst
+  }
+}
+
+resource "aws_api_gateway_account" "parent" {
+  cloudwatch_role_arn = local.api_gateway_cloudwatch_role
+}
+
+#resource "aws_iam_role" "cloudwatch" {
+#  name = "api_gateway_cloudwatch_global"
+#
+#  assume_role_policy = <<EOF
+#{
+#  "Version": "2012-10-17",
+#  "Statement": [
+#    {
+#      "Sid": "",
+#      "Effect": "Allow",
+#      "Principal": {
+#        "Service": "apigateway.amazonaws.com"
+#      },
+#      "Action": "sts:AssumeRole"
+#    }
+#  ]
+#}
+#EOF
+#}
+#
+#resource "aws_iam_role_policy" "cloudwatch" {
+#  name = "default"
+#  role = aws_iam_role.cloudwatch.id
+#
+#  policy = <<EOF
+#{
+#    "Version": "2012-10-17",
+#    "Statement": [
+#        {
+#            "Effect": "Allow",
+#            "Action": [
+#                "logs:CreateLogGroup",
+#                "logs:CreateLogStream",
+#                "logs:DescribeLogGroups",
+#                "logs:DescribeLogStreams",
+#                "logs:PutLogEvents",
+#                "logs:GetLogEvents",
+#                "logs:FilterLogEvents"
+#            ],
+#            "Resource": "*"
+#        }
+#    ]
+#}
+#EOF
+#}
+
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.resource["aws_api_gateway_rest_api"]["parent"] != null
+
 	}
 
 
