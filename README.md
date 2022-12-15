@@ -44,4 +44,7 @@ For More Information on the HCL Syntax Please see the project page:
 
 ## Things to be Done
 
-This plugin does not yet handle processing of the interpolated string syntax. While it does generate it into the result map, Parsing the values of the interpolation syntax needs to be done in a follow up step using some type of HCL runtime engine
+* Handle Nested String Interpolation
+* for tuples and objects are processed but not evaluated
+* conditional operations need to be processed / evaluated
+* add more method definitions for base terraform functions
