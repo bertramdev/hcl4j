@@ -318,8 +318,8 @@ MLineStart = [\<] [\<] [\ ]? {HCLAttributeName}
 
 
 ExprTerm = {True} | {False} | {Null} | {DigitValue} | {Identifier} | {FunctionCall}
-Conditional = \|\| | \&\& | \> [=]* | \< [=]* | == | [?] | \: | if
-Operation = [\+\-\/\*]
+Conditional = \|\| | \&\& | \> [=]* | \< [=]* | == | \!= | [?] | \: | if
+Operation = [\+\-\/\*\%]
 Expression = {ExprTerm} | {Operation} | {Conditional}
 /*For Expression*/
 ForObjExpr = \{ [\n\t\f\r ]* {ForIntro}

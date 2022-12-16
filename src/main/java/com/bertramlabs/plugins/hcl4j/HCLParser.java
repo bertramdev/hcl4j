@@ -460,6 +460,109 @@ public class HCLParser {
 					Symbol child = symbol.getChildren().get(x);
 					if(child instanceof Operator) {
 						switch(child.getName()) {
+							case "&&":
+							case "||":
+								GroupedExpression groupedConditional = new GroupedExpression(null,null,null);
+								Symbol nextConditionalElement = symbol.getChildren().get(++x);
+								groupedConditional.appendChild(nextConditionalElement);
+								while(x < symbol.getChildren().size() - 1 ) {
+									nextConditionalElement = symbol.getChildren().get(++x);
+									if(!nextConditionalElement.getName().equals("&&") && !nextConditionalElement.getName().equals("||") && !nextConditionalElement.getName().equals("?") && !nextConditionalElement.equals(":")) {
+										groupedConditional.appendChild(nextConditionalElement);
+									} else {
+										--x;
+										break;
+									}
+								}
+								Object andResult = processSymbolPass2(groupedConditional,nestedMap);
+
+
+								if(child.getName().equals("||")) {
+									if((results instanceof Boolean && ((Boolean) results) || (!(results instanceof Boolean) && results != null)) || (andResult instanceof Boolean && ((Boolean) andResult) || (!(andResult instanceof Boolean) && andResult != null))) {
+										results = true;
+									} else {
+										results = false;
+									}
+								} else { //and
+									System.out.println("And Result : " + andResult + "Expression: " + groupedConditional.getChildren().size());
+									if((results instanceof Boolean && ((Boolean) results) || (!(results instanceof Boolean) && results != null)) && (andResult instanceof Boolean && ((Boolean) andResult) || (!(andResult instanceof Boolean) && andResult != null))) {
+										results = true;
+									} else {
+										results = false;
+									}
+								}
+
+								break;
+							case "?":
+								//if left side of result is false we need to skip between the ? and the :
+								if(results instanceof Boolean && !((Boolean) results) || results == null ) {
+									//skip children until ":" operator
+									Symbol nextElement = symbol.getChildren().get(++x);
+									while(!(nextElement instanceof Operator) && nextElement.getName() != ":") {
+										nextElement = symbol.getChildren().get(++x);
+									}
+								}
+								break;
+							case ":":
+								//if we got to a colon operator then we need to skip everything after it as its processed with the ? operator above
+								x = symbol.getChildren().size();
+								break;
+							case "==":
+								Object compareResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+								if(compareResult == results || (compareResult != null && compareResult.equals(results))) {
+									results = true;
+								} else {
+									results = false;
+								}
+								break;
+							case ">":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results > (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case ">=":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results >= (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "<":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results < (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "<=":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results <= (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "!=":
+								Object compareResult2 = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+								if(compareResult2 != results && (compareResult2 == null || !compareResult2.equals(results))) {
+									results = true;
+								} else {
+									results = false;
+								}
+								break;
 							case "+":
 								if(results instanceof String) {
 									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
@@ -486,6 +589,13 @@ public class HCLParser {
 									} else {
 										//TODO: Exception?
 									}
+								} else if(results == null) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results =  - (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
 								}
 								break;
 							case "/":
@@ -493,6 +603,16 @@ public class HCLParser {
 									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
 									if(rightResult != null && rightResult instanceof Double) {
 										results = (Double)results / (Double)rightResult;
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "%":
+								if(results instanceof Double) {
+									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = (Double)results % (Double)rightResult;
 									} else {
 										//TODO: Exception?
 									}

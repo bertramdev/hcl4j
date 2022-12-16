@@ -46,5 +46,4 @@ For More Information on the HCL Syntax Please see the project page:
 
 * Handle Nested String Interpolation
 * for tuples and objects are processed but not evaluated
-* conditional operations need to be processed / evaluated
 * add more method definitions for base terraform functions

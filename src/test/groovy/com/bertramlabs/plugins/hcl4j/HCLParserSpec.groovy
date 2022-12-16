@@ -574,6 +574,36 @@ test3 = substr("hello world", 6, 10)
 	}
 
 
+	void "it should handle conditional expressions"() {
+		given:
+		def hcl = '''
+worldVar = "world"
+testConditional = 1 < 2 ? "yes" : "no"
+testConditional2 = 3 < 2 ? "yes" : "no"
+testConditional3 = "hello" == "hello" ? "yes" : "no"
+testConditional4 = "hello" != "hello" ? "yes" : "no"
+testConditional5 = 3 < 2 ? "yes" : (4 > 2 ? "maybe" : "maybe not")
+testConditional6 = worldVar == "world" ? "yes" : "no"
+testConditional7 = worldVar == "world" && 3 > 2 ? "yes" : "no"
+testConditional8 = worldVar == "world" && 3 < 2 ? "yes" : "no"
+testConditional9 = worldVar == "world" || 3 < 2 ? "yes" : "no"
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.testConditional == "yes"
+		results.testConditional2 == "no"
+		results.testConditional3 == "yes"
+		results.testConditional4 == "no"
+		results.testConditional5 == "maybe"
+		results.testConditional6 == "yes"
+		results.testConditional7 == "yes"
+		results.testConditional8 == "no"
+		results.testConditional9 == "yes"
+	}
+
+
 	void "format should function correctly"() {
 		given:
 		def hcl = '''

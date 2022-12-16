@@ -1,10 +1,17 @@
 package com.bertramlabs.plugins.hcl4j;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.StringTokenizer;
+import java.util.*;
 
+/**
+ * Provides implementations of the common Terraform Base HCL Functions that are commonly used.
+ * Functions can easily be registered dynamically on the HCLParser as well but this particular set is auto registered in the
+ * constructor of the {@link HCLParser}
+ * TODO: Not all functions have been implemented yet. Most functions currently fail by returning null to prevent errors from occurring
+ * during high level processing. This could be changed in the future to be an optional behavior of the parser
+ * 
+ * @since 0.5.0
+ * @author David Estes
+ */
 public class HCLBaseFunctions {
     static void registerBaseFunctions(HCLParser parser) {
         parser.registerFunction("upper", (arguments) -> {
@@ -173,6 +180,7 @@ public class HCLBaseFunctions {
         });
 
         registerNumericFunctions(parser);
+        registerCollectionFunctions(parser);
     }
 
     static void registerNumericFunctions(HCLParser parser) {
@@ -244,6 +252,88 @@ public class HCLBaseFunctions {
             }
             return null;
         });
+
+    }
+
+
+    /**
+     * Registers the common Terraform Collection Functions as defined in the hashicorp documentation
+     * Refer to: <a href="https://developer.hashicorp.com/terraform/language/functions">https://developer.hashicorp.com/terraform/language/functions</a>
+     * NOTE: This is called from the main "registerBaseFunctions" automatically
+     * @param parser the parser object we are registering the functions
+     */
+    static void registerCollectionFunctions(HCLParser parser) {
+        parser.registerFunction("element", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    Double val = (Double)(arguments.get(1)) ;
+                    return elements.get(val.intValue());
+                } else {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        parser.registerFunction("length", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    return new Double(elements.size());
+                } else {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        parser.registerFunction("index", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    Object val = arguments.get(1);
+                    return elements.indexOf(val);
+                } else {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        parser.registerFunction("one", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    if(elements.size() > 0) {
+                        return elements.get(0);
+                    } else {
+                        return null;
+                    }
+                } else {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+        parser.registerFunction("lookup", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof Map) {
+                    Map<String,Object> elements = ((Map<String,Object>)(arguments.get(0)));
+                    String key = ((String)(arguments.get(1)));
+                    Object value = elements.get(key);
+                    if(value == null && arguments.size() > 2) {
+                       value = arguments.get(2);
+                    }
+                    return value;
+                } else {
+                    return null;
+                }
+            }
+            return null;
+        });
+
 
     }
 
