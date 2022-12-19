@@ -1,5 +1,8 @@
 package com.bertramlabs.plugins.hcl4j;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -189,6 +192,7 @@ public class HCLBaseFunctions {
         registerNumericFunctions(parser);
         registerCollectionFunctions(parser);
         registerDateFunctions(parser);
+        registerCastingFunctions(parser);
     }
 
     static void registerNumericFunctions(HCLParser parser) {
@@ -350,6 +354,20 @@ public class HCLBaseFunctions {
         parser.registerFunction("timestamp", (arguments) -> {
             return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
                     .format(new Date());
+        });
+    }
+
+    static void registerCastingFunctions(HCLParser parser) {
+        parser.registerFunction("jsonencode", (arguments) -> {
+            if(arguments.size() > 0) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                try {
+                    return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(arguments.get(0));
+                } catch(JsonProcessingException ex) {
+                    //SHOULD WE LOG THIS
+                }
+            }
+            return null;
         });
     }
 

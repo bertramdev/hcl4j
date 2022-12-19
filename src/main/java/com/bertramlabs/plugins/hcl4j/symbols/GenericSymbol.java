@@ -15,6 +15,8 @@
  */
 package com.bertramlabs.plugins.hcl4j.symbols;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.List;
 import java.util.ArrayList;
 
@@ -28,6 +30,8 @@ public abstract class GenericSymbol implements Symbol {
 
 	private List<Symbol> children = new ArrayList<Symbol>();
 	private List<Symbol> attributes = new ArrayList<Symbol>();
+
+	@JsonIgnore
 	private Symbol parent;
 
 	public String getName() {

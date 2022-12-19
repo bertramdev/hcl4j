@@ -30,7 +30,7 @@ ext {
 
 
 group = 'com.bertramlabs.plugins'
-version = '0.6.0'
+version = '0.6.1'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = "1.8"
@@ -43,6 +43,9 @@ repositories {
 
 dependencies {
     api "commons-logging:commons-logging:1.2"
+    api 'com.fasterxml.jackson.core:jackson-databind:2.10.5.1'
+    api 'com.fasterxml.jackson.core:jackson-annotations:2.10.5'
+    api 'com.fasterxml.jackson.core:jackson-core:2.10.5'
     testImplementation "org.codehaus.groovy:groovy-all:2.5.13"
     testImplementation "org.spockframework:spock-core:1.3-groovy-2.5"
 }
