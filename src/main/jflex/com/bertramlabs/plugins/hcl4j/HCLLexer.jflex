@@ -331,6 +331,7 @@ Null = null
 StringPrimitive = string
 NumberPrimitive = number
 BooleanPrimitive = bool
+AnyPrimitive = any
 IfPrimitive = if
 ListPrimitive = list | list*\( | tuple | tuple*\(
 MapPrimitive = map | map*\( | object | object*\(
@@ -344,7 +345,7 @@ HCLQuotedPropertyName = [\"] [^\r\n]+ [\"]
 
 HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeName} {WhiteSpaceOpt} "{" [^]* "}"
 
-HCLBlockAttribute = {WhiteSpaceOpt} "\"" {HCLDoubleStringCharacters} "\"" {WhiteSpaceOpt} | {WhiteSpace} "\'" {HCLSingleStringCharacters} "\'" {WhiteSpaceOpt}
+HCLBlockAttribute = {WhiteSpaceOpt} "\"" {HCLDoubleStringCharacters} "\"" {WhiteSpaceOpt} | {WhiteSpace} "\'" {HCLSingleStringCharacters} "\'" {WhiteSpaceOpt} | {WhiteSpace} {HCLAttributeName}  {WhiteSpaceOpt}
 
 HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} "=" | {HCLQuotedPropertyName} {WhiteSpaceOpt} "="
 
@@ -470,6 +471,7 @@ AssignmentExpression = [^]
 <HCLBLOCKATTRIBUTES> {
   \{                             { curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; yybegin(HCLINBLOCK); }
   \"                             {yybegin(STRINGDOUBLE); string.setLength(0);}
+  {HCLAttributeName}             { blockNames.add(yytext());}
   {WhiteSpace}                   { /* ignore */ }
 }
 
@@ -538,6 +540,7 @@ AssignmentExpression = [^]
   {StringPrimitive}       { currentBlock.appendChild(new StringPrimitiveType(yyline,yycolumn,yychar)); }
   {NumberPrimitive}       { currentBlock.appendChild(new NumberPrimitiveType(yyline,yycolumn,yychar)); }
   {BooleanPrimitive}      { currentBlock.appendChild(new BooleanPrimitiveType(yyline,yycolumn,yychar)); }
+  {AnyPrimitive}          { currentBlock.appendChild(new AnyPrimitiveType(yyline,yycolumn,yychar)); }
   {ListPrimitive}         { subTypePrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {SetPrimitive}         { subTypePrimitiveType = new SetPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {MapPrimitive}         { subTypePrimitiveType = new MapPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }

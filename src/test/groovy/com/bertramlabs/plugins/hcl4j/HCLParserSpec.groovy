@@ -183,20 +183,40 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 		results.variable.test.list.size() == 4
 	}
 
-	void "should handle complex strings" () {
+	void "should handle block attribute identifiers" () {
 		given:
 		def hcl = '''
-access_log_settings {
-destination_arn = "${aws_cloudwatch_log_group.api_gw_cloudwatch.arn}"
-format = "${replace(file("api_log_format.json"), "\\n", "")}"
+resource xxx "images" {
+  default = "empty.jpg"
 }
 '''
 		HCLParser parser = new HCLParser();
 		when:
 		def results  = parser.parse(hcl)
 		then:
-		results.access_log_settings.format != null
+		results.resource.xxx.images.default == "empty.jpg"
 	}
+
+
+	void "should handle Map parsing"() {
+		given:
+
+		def hcl = '''
+variable {
+test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David", lastName: "Estes", aliases: []}}
+}
+
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.containsKey('variable') == true
+		results.variable.test instanceof Map
+		results.variable.test.list.size() == 4
+	}
+
 
 
 	void "should handle complex type parsing"() {
@@ -205,6 +225,7 @@ format = "${replace(file("api_log_format.json"), "\\n", "")}"
 variable "cluster_enabled_log_types" {
     description = "A list of the desired control plane logs to enable. For more information, see Amazon EKS Control Plane Logging documentation (https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html)"
     type        = list(string)
+    myany       = list(any)
     default     = ["audit", "api", "authenticator"]
 }
 
