@@ -392,13 +392,19 @@ public class HCLParser {
 		} else if(symbol instanceof EvalSymbol) {
 			return processEvaluation((EvalSymbol) symbol,null);
 		} else if(symbol instanceof HCLAttribute) {
+			String symName = symbol.getName();
+			if(symName == null && ((HCLAttribute) symbol).runtimeName != null) {
+				Map<String,Object> nestedMap = new LinkedHashMap<>();
+				symName = (String)(processSymbolPass2(((HCLAttribute) symbol).runtimeName,nestedMap));
+			}
+
 			if(symbol.getChildren().size() == 1 && symbol.getChildren().get(0) instanceof HCLBlock) {
 				Object results = null;
 				Map<String,Object> nestedMap = new LinkedHashMap<>();
 				results = processSymbolPass1(symbol.getChildren().get(0),nestedMap);
-				mapPosition.put(symbol.getName(),results);
+				mapPosition.put(symName,results);
 			} else {
-				mapPosition.put(symbol.getName(),symbol);
+				mapPosition.put(symName,symbol);
 			}
 
 			return mapPosition;
@@ -451,8 +457,10 @@ public class HCLParser {
 			return val;
 		} else if(val instanceof EvalSymbol) {
 			return processEvaluation((EvalSymbol) val,null);
-		} else if(val instanceof HCLAttribute || val instanceof GroupedExpression) {
+		} else if(val instanceof HCLAttribute || val instanceof GroupedExpression || val instanceof StringInterpolatedExpression) {
+
 			 Symbol symbol = (Symbol) val;
+
 			Map<String,Object> nestedMap = new LinkedHashMap<>();
 			if(symbol.getChildren().size() > 0) {
 				Object results = null;
@@ -484,7 +492,6 @@ public class HCLParser {
 										results = false;
 									}
 								} else { //and
-									System.out.println("And Result : " + andResult + "Expression: " + groupedConditional.getChildren().size());
 									if((results instanceof Boolean && ((Boolean) results) || (!(results instanceof Boolean) && results != null)) && (andResult instanceof Boolean && ((Boolean) andResult) || (!(andResult instanceof Boolean) && andResult != null))) {
 										results = true;
 									} else {
@@ -578,7 +585,8 @@ public class HCLParser {
 									} else {
 										//TODO: Exception?
 									}
-
+								} else if(results == null) {
+									results = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
 								}
 								break;
 							case "-":
@@ -634,14 +642,14 @@ public class HCLParser {
 					}
 				}
 
-				if(symbol instanceof GroupedExpression) {
+				if(symbol instanceof GroupedExpression || symbol instanceof StringInterpolatedExpression) {
 					return results;
 				} else {
 					mapPosition.put(symbol.getName(),results);
 				}
 
 			} else {
-				if(symbol instanceof GroupedExpression) {
+				if(symbol instanceof GroupedExpression || symbol instanceof StringInterpolatedExpression) {
 					return null;
 				} else {
 					mapPosition.put(symbol.getName(),null);
@@ -866,20 +874,25 @@ public class HCLParser {
 					} else if(context != null){
 						context = ((Map)context).get(child.getName());
 						if(variableLookup && context == null) {
-							if(result.get("variable") != null) {
+							if(result.get("variable") != null && result.get("variable") instanceof Map) {
 								Map variableDefinitions = (Map)( result.get("variable"));
-								Map varDefinition = (Map)(variableDefinitions.get(child.getName()));
-								if(varDefinition != null) {
-									return varDefinition.get("default");
+								if(variableDefinitions.get(child.getName()) instanceof Map) {
+									Map varDefinition = (Map)(variableDefinitions.get(child.getName()));
+									if(varDefinition != null) {
+										return varDefinition.get("default");
+									} else {
+										return null;
+									}
 								} else {
-									return null;
+									return variableDefinitions.get(child.getName());
 								}
+
 
 							}
 						}
 					}
 
-				} else if(child instanceof HCLArray && context != null) {
+				} else if(child instanceof HCLArray) {
 					//TODO: If there are more elements throw exception
 					Symbol firstElement = child.getChildren().get(0);
 					Object elementResult = null;
@@ -888,9 +901,28 @@ public class HCLParser {
 					} else if(firstElement instanceof  HCLValue) {
 						elementResult = processValue((HCLValue)firstElement);
 					}
-					if(elementResult != null && elementResult instanceof String) {
+
+					if(elementResult != null && elementResult instanceof String && context != null) {
 						context = ((Map)context).get(elementResult);
-					} else if (elementResult != null && elementResult instanceof Double) {
+						if(variableLookup && context == null ) {
+							if(result.get("variable") != null && result.get("variable") instanceof Map) {
+								Map variableDefinitions = (Map)( result.get("variable"));
+								if(variableDefinitions.get(elementResult) instanceof Map) {
+									Map varDefinition = (Map)(variableDefinitions.get(elementResult));
+									if(varDefinition != null) {
+										return varDefinition.get("default");
+									} else {
+										return null;
+									}
+								} else {
+									return variableDefinitions.get(elementResult);
+								}
+
+
+							}
+						}
+
+					} else if (elementResult != null && elementResult instanceof Double && context != null) {
 						//index position
 						Double elementDouble = (Double)elementResult;
 						context = ((List)context).get(elementDouble.intValue());

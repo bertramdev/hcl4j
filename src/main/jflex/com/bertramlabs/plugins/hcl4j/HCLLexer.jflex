@@ -71,7 +71,7 @@ HCLParserException
   }
 
   private Symbol exitBlock() {
-    //System.out.println("Leaving Block");
+
     Symbol result = null;
     if(currentBlock != null) {
       if(currentBlock.getParent() == null) {
@@ -96,6 +96,20 @@ HCLParserException
     attribute = currentAttribute;
   }
 
+  private void startAttribute(StringInterpolatedExpression expression) {
+          //System.out.println("Starting Attribute");
+
+      HCLAttribute currentAttribute = new HCLAttribute(null,yyline,yycolumn,yychar);
+      currentAttribute.runtimeName = expression;
+      if(currentBlock == null) {
+        elementStack.add(currentAttribute);
+      } else {
+        currentBlock.appendChild(currentAttribute);
+      }
+      currentBlock = currentAttribute;
+      attribute = currentAttribute;
+    }
+
   private void startMap() {
     HCLMap currentAttribute = new HCLMap(yyline,yycolumn,yychar);
         if(currentBlock == null) {
@@ -105,6 +119,32 @@ HCLParserException
         }
         currentBlock = currentAttribute;
   }
+
+  private void startInterpolatedString() {
+    StringInterpolatedExpression currentAttribute;
+    if(currentBlock != null && currentBlock instanceof StringInterpolatedExpression) {
+     //we behave different since already in one
+        currentAttribute = (StringInterpolatedExpression)currentBlock;
+    } else {
+        currentAttribute = new StringInterpolatedExpression(yyline,yycolumn,yychar);
+        if(currentBlock == null) {
+            elementStack.add(currentAttribute);
+          } else {
+            currentBlock.appendChild(currentAttribute);
+          }
+    }
+    currentAttribute.appendChild(new HCLValue("string",string.toString(),yyline,yycolumn,yychar));
+    string.setLength(0);
+    currentAttribute.appendChild(new Operator("+",yyline,yycolumn,yychar));
+    StringInterpolatedExpression expr = new StringInterpolatedExpression(yyline,yycolumn,yychar);
+    currentAttribute.appendChild(expr);
+
+
+      currentBlock = expr;
+      yybegin(HCLATTRIBUTEVALUE);
+  }
+
+
 
   private void startArray() {
         HCLArray currentAttribute = new HCLArray(yyline,yycolumn,yychar);
@@ -202,16 +242,21 @@ HCLParserException
       return result;
     } else {
       attribute = null;
-        if((!(currentBlock instanceof HCLArray) && !(currentBlock instanceof HCLMap) && !(currentBlock instanceof GroupedExpression) && !(currentBlock instanceof VariableTree) && !(currentBlock instanceof Variable) && !(currentBlock instanceof ComputedTuple) && !(currentBlock instanceof ComputedObject) && !(currentBlock instanceof Function)) || force == true) {
+        if((!(currentBlock instanceof HCLArray) && !(currentBlock instanceof HCLMap) && !(currentBlock instanceof GroupedExpression) && !(currentBlock instanceof StringInterpolatedExpression) && !(currentBlock instanceof VariableTree) && !(currentBlock instanceof Variable) && !(currentBlock instanceof ComputedTuple) && !(currentBlock instanceof ComputedObject) && !(currentBlock instanceof Function)) || force == true) {
           exitBlock();
+
         }
 
       if(currentBlock instanceof Variable || currentBlock instanceof VariableTree) {
         yybegin(VARIABLETREE);
+      }  else if(currentBlock instanceof SubTypePrimitiveType) {
+         yybegin(SUBTYPEPRIMITIVETYPE);
+      } else if(currentBlock instanceof StringInterpolatedExpression) {
+                yybegin(HCLATTRIBUTEVALUE);
       } else if(currentBlock instanceof GroupedExpression) {
-               yybegin(HCLATTRIBUTEVALUE);
+         yybegin(HCLATTRIBUTEVALUE);
       } else if(currentBlock instanceof ForConditional) {
-            yybegin(HCLATTRIBUTEVALUE);
+         yybegin(HCLATTRIBUTEVALUE);
       } else if(currentBlock instanceof ComputedTuple) {
         yybegin(FORTUPLEEXPRESSION);
       } else if(currentBlock instanceof ComputedObject) {
@@ -287,8 +332,8 @@ StringPrimitive = string
 NumberPrimitive = number
 BooleanPrimitive = bool
 IfPrimitive = if
-ListPrimitive = list | list*\(
-MapPrimitive = map | map*\(
+ListPrimitive = list | list*\( | tuple | tuple*\(
+MapPrimitive = map | map*\( | object | object*\(
 SetPrimitive = set | set*\(
 ForInExpression = in
 
@@ -389,10 +434,10 @@ AssignmentExpression = [^]
 }
 <STRINGDOUBLE> {
 
-  \"                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentBlock != null && currentBlock instanceof HCLMap && currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else if (stringAttributeName) { stringAttributeName = false ; yybegin(HCLATTRIBUTE); startAttribute(string.toString());} else if(currentBlock != null) { currentBlock.appendChild(new HCLValue("string",string.toString(),yyline,yycolumn,yychar));  yybegin(HCLATTRIBUTEVALUE); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); } }
+  \"                             { if(blockNames != null) { blockNames.add(string.toString());  yybegin(HCLBLOCKATTRIBUTES); } else if(currentBlock != null && currentBlock instanceof HCLMap && currentMapKey == null) { currentMapKey = string.toString() ; yybegin(HCLMAPKEYDEF); } else if (stringAttributeName) { stringAttributeName = false ; yybegin(HCLATTRIBUTE); if(currentBlock instanceof StringInterpolatedExpression) {StringInterpolatedExpression expr = (StringInterpolatedExpression)currentBlock; exitAttribute(true);startAttribute(expr);yybegin(HCLATTRIBUTE);} else { startAttribute(string.toString());}} else if(currentBlock != null) { currentBlock.appendChild(new HCLValue("string",string.toString(),yyline,yycolumn,yychar));if(currentBlock instanceof StringInterpolatedExpression){exitAttribute(true);}  yybegin(HCLATTRIBUTEVALUE); } else { throw new HCLParserException("String block found outside of block or attribute assignment."); } }
   \\\"                           { string.append('\"'); }
   {EscapedInterpolation}         { string.append( yytext() );}
-  {InterpolationSyntax}          { string.append('$');yypushback(yylength()-1); yybegin(STRINGINTERPOLATED); }
+  {InterpolationSyntax}          { startInterpolatedString(); }
   \$[^\{\$\"]                      { string.append( yytext() ); }
   \$\"                            { string.append( "$" ); yypushback(yylength()-1); }
   [^\$\n\r\"\\]+                 { string.append( yytext() ); }
@@ -493,9 +538,9 @@ AssignmentExpression = [^]
   {StringPrimitive}       { currentBlock.appendChild(new StringPrimitiveType(yyline,yycolumn,yychar)); }
   {NumberPrimitive}       { currentBlock.appendChild(new NumberPrimitiveType(yyline,yycolumn,yychar)); }
   {BooleanPrimitive}      { currentBlock.appendChild(new BooleanPrimitiveType(yyline,yycolumn,yychar)); }
-  {ListPrimitive}         { subTypePrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
-  {SetPrimitive}         { subTypePrimitiveType = new SetPrimitiveType(null,yyline,yycolumn,yychar); currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
-  {MapPrimitive}         { subTypePrimitiveType = new MapPrimitiveType(null,yyline,yycolumn,yychar); currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
+  {ListPrimitive}         { subTypePrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
+  {SetPrimitive}         { subTypePrimitiveType = new SetPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
+  {MapPrimitive}         { subTypePrimitiveType = new MapPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {Conditional}                  { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); }
   {Operation}                    { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); }
   {EvaluatedExpression}          { startEvalExpression(); }
@@ -506,7 +551,7 @@ AssignmentExpression = [^]
   {WhiteSpace}                   { /* ignore */ }
   \)                             { exitAttribute(true); }
 
-  \}                             { yypushback(yylength()); exitAttribute(true);   }
+  \}                             { if(currentBlock instanceof StringInterpolatedExpression) {exitAttribute(true);currentBlock.appendChild(new Operator("+",yyline,yycolumn,yychar));yybegin(STRINGDOUBLE);string.setLength(0);} else {yypushback(yylength()); exitAttribute(true); }  }
 
 }
 
@@ -615,15 +660,9 @@ AssignmentExpression = [^]
 }
 
 <SUBTYPEPRIMITIVETYPE> {
-  \(                             { primitiveDepth++ ; }
-  \)                             { primitiveDepth--; if(primitiveDepth == 0) {subTypePrimitiveType = null; exitAttribute();} }
-  {LineTerminator}               { subTypePrimitiveType = null; exitAttribute(); }
-  {StringPrimitive}              { subTypePrimitiveType.subType = new StringPrimitiveType(yyline,yycolumn,yychar); subTypePrimitiveType = null;}
-  {NumberPrimitive}              { subTypePrimitiveType.subType = new NumberPrimitiveType(yyline,yycolumn,yychar); subTypePrimitiveType = null;}
-  {BooleanPrimitive}             { subTypePrimitiveType.subType = new BooleanPrimitiveType(yyline,yycolumn,yychar); subTypePrimitiveType = null;}
-  {MapPrimitive}                 { MapPrimitiveType tmpPrimitive = new MapPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType.subType = tmpPrimitive; subTypePrimitiveType = tmpPrimitive;}
-  {ListPrimitive}                 { ListPrimitiveType tmpPrimitive = new ListPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType.subType = tmpPrimitive; subTypePrimitiveType = tmpPrimitive;}
-  {SetPrimitive}                 { SetPrimitiveType tmpPrimitive = new SetPrimitiveType(null,yyline,yycolumn,yychar); subTypePrimitiveType.subType = tmpPrimitive; subTypePrimitiveType = tmpPrimitive;}
+  \(                             { currentBlock = subTypePrimitiveType ; yybegin(HCLATTRIBUTEVALUE); }
+  \)                             { exitAttribute(true); }
+  {LineTerminator}               { exitAttribute(true); }
   {Comment}                      { /* ignore */ }
   {WhiteSpace}                   { /* ignore */ }
 }

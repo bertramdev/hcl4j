@@ -15,9 +15,11 @@
  */
 package com.bertramlabs.plugins.hcl4j.symbols;
 
+import com.bertramlabs.plugins.hcl4j.RuntimeSymbols.StringInterpolatedExpression;
+
 public class HCLAttribute  extends GenericSymbol {
 
-
+	public StringInterpolatedExpression runtimeName = null;
 	public HCLAttribute(String name, Integer line, Integer column,Integer position) {
 		super(name,line,column,position);
 	}

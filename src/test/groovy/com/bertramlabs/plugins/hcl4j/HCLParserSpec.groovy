@@ -182,6 +182,53 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 		results.variable.test.list.size() == 4
 	}
 
+	void "should handle complex strings" () {
+		given:
+		def hcl = '''
+access_log_settings {
+destination_arn = "${aws_cloudwatch_log_group.api_gw_cloudwatch.arn}"
+format = "${replace(file("api_log_format.json"), "\\n", "")}"
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		then:
+		results.access_log_settings.format != null
+	}
+
+
+	void "should handle complex type parsing"() {
+		given:
+		def hcl = '''
+variable "cluster_enabled_log_types" {
+    description = "A list of the desired control plane logs to enable. For more information, see Amazon EKS Control Plane Logging documentation (https://docs.aws.amazon.com/eks/latest/userguide/control-plane-logs.html)"
+    type        = list(string)
+    default     = ["audit", "api", "authenticator"]
+}
+
+variable "cluster_encryption_config" {
+    description = "Configuration block with encryption configuration for the cluster"
+    type = list(object({
+        provider_key_arn = string
+        resources        = list(string)
+    }))
+    default = []
+}
+
+variable "tags" {
+    description = "A map of tags to add to all resources"
+    type        = map(string)
+    default     = {}
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		then:
+		results.variable.tags.type instanceof PrimitiveType
+	}
+
 	void "should handle primitive type parsing"() {
 		given:
 		def hcl = '''
@@ -204,12 +251,12 @@ variable {
 		results.variable.typeString instanceof StringPrimitiveType
 		results.variable.typeList instanceof ListPrimitiveType
 		results.variable.typeListString instanceof ListPrimitiveType
-		results.variable.typeListString.subType instanceof StringPrimitiveType
+		results.variable.typeListString.getChildren().get(0) instanceof StringPrimitiveType
 		results.variable.typeSetNumber instanceof SetPrimitiveType
 		results.variable.typeMap instanceof MapPrimitiveType
 		results.variable.typeMapListString instanceof MapPrimitiveType
-		results.variable.typeMapListString.subType instanceof ListPrimitiveType
-		results.variable.typeMapListString.subType.subType instanceof StringPrimitiveType
+		results.variable.typeMapListString.getChildren().get(0) instanceof ListPrimitiveType
+		results.variable.typeMapListString.getChildren().get(0).getChildren().get(0) instanceof StringPrimitiveType
 	}
 
 
@@ -252,7 +299,7 @@ default = ["subnet-72b9162b"]
  		when:
  		def results = parser.parse(hcl)
  		then:
- 		results.resource.aws_instance.test.tags.Date == '${timestamp()}'
+ 		results.resource.aws_instance.test.tags.Date != null
  		
 	}
 
@@ -278,7 +325,7 @@ escapedInterpolation = "$${var.firstName}"
 		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.containsKey('variable') == true
-		results.variable.fullName == '${var.firstName} ${var["lastName"]}'
+		results.variable.fullName == 'David Estes'
 		results.variable.escapedInterpolation == '$${var.firstName}'
 	}
 
@@ -801,6 +848,8 @@ resource "aws_launch_configuration" "web" {
 		HCLParser parser = new HCLParser();
 		when:
 		def results = parser.parse(hcl)
+		println("results: ${results}")
+
 		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.resource["aws_launch_configuration"]["web"]?.user_data != null

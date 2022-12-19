@@ -22,6 +22,7 @@ dependencies {
 
 ## Whats New
 
+* **0.6.0** Runtime parsing of Conditional Expressions, Mathematical Operators, String Interpolation now supported. Added additional Terraform Base Functions. Improved parser syntax to handle some outliar formats. Nested Type Primitives now work more completely (subType no longer used, check children of the Primitive Symbol)
 * **0.5.0** Runtime Parsing is now supported and for loops. There are huge improvements to support actually evaluating complex runtime operations during the parsing of the hcl. variables can even be processed via the parseVars method.
 * **0.4.0** Primitive Types are now appended into the Map.  These are of an extended `PrimitiveType` class. These Types include `StringPrimitiveType`, `NumberPrimitiveType`, `BooleanPrimitiveType`, `MapPrimitiveType`, and lastly `ListPrimitiveType` with a `subType` capable property.
 
@@ -44,6 +45,5 @@ For More Information on the HCL Syntax Please see the project page:
 
 ## Things to be Done
 
-* Handle Nested String Interpolation
 * for tuples and objects are processed but not evaluated
 * add more method definitions for base terraform functions

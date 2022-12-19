@@ -1,5 +1,6 @@
 package com.bertramlabs.plugins.hcl4j;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -8,7 +9,7 @@ import java.util.*;
  * constructor of the {@link HCLParser}
  * TODO: Not all functions have been implemented yet. Most functions currently fail by returning null to prevent errors from occurring
  * during high level processing. This could be changed in the future to be an optional behavior of the parser
- * 
+ *
  * @since 0.5.0
  * @author David Estes
  */
@@ -93,6 +94,9 @@ public class HCLBaseFunctions {
                     String separator = (String)(arguments.get(0));
                     String value = (String)(arguments.get(1));
                     ArrayList<String> elements = new ArrayList<>();
+                    if(value == null) {
+                        return null;
+                    }
                     StringTokenizer tokenizer = new StringTokenizer(value,separator);
                     while(tokenizer.hasMoreTokens()) {
                         elements.add(tokenizer.nextToken());
@@ -169,6 +173,9 @@ public class HCLBaseFunctions {
                 String substring = (String)(arguments.get(1));
                 String replacement  = (String)(arguments.get(2));
                 String value = (String)(arguments.get(0));
+                if(value == null) {
+                    return null;
+                }
                 return value.replace(substring,replacement);
             } else {
                 return null; //Invalid Function Spec
@@ -181,6 +188,7 @@ public class HCLBaseFunctions {
 
         registerNumericFunctions(parser);
         registerCollectionFunctions(parser);
+        registerDateFunctions(parser);
     }
 
     static void registerNumericFunctions(HCLParser parser) {
@@ -335,6 +343,14 @@ public class HCLBaseFunctions {
         });
 
 
+    }
+
+
+    static void registerDateFunctions(HCLParser parser) {
+        parser.registerFunction("timestamp", (arguments) -> {
+            return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+                    .format(new Date());
+        });
     }
 
 
