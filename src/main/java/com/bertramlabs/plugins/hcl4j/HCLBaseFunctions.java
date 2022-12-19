@@ -1,7 +1,10 @@
 package com.bertramlabs.plugins.hcl4j;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -369,7 +372,25 @@ public class HCLBaseFunctions {
             }
             return null;
         });
+        parser.registerFunction("jsondecode", (arguments) -> {
+            if(arguments.size() > 0 && arguments.get(0) instanceof String) {
+                ObjectMapper objectMapper = new ObjectMapper();
+                try {
+                    String val = (String)(arguments.get(0));
+                    JsonNode node = objectMapper.readTree(val);
+                    if(node.getNodeType() == JsonNodeType.OBJECT) {
+                        Map<String, Object> result = objectMapper.convertValue(node, new TypeReference<Map<String, Object>>(){});
+                        return result;
+                    } else if(node.getNodeType() == JsonNodeType.ARRAY) {
+                        ArrayList<Object> result = objectMapper.convertValue(node, new TypeReference<ArrayList<Object>>(){});
+                        return result;
+                    }
+                } catch(JsonProcessingException ex) {
+                    //SHOULD WE LOG THIS
+                }
+            }
+            return null;
+        });
     }
-
 
 }

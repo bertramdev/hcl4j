@@ -360,6 +360,47 @@ resource "aws_ecs_task_definition" "service" {
 		new JsonSlurper().parseText(results.resource.aws_ecs_task_definition.service?.container_definitions)[0].name == "first"
 	}
 
+
+	void "it should decode json"() {
+		given:
+		def hcl = '''
+  container_definitions = jsondecode(jsonencode([
+    {
+      name      = "first"
+      image     = "service-first"
+      cpu       = 10
+      memory    = 512
+      essential = true
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+        }
+      ]
+    },
+    {
+      name      = "second"
+      image     = "service-second"
+      cpu       = 10
+      memory    = 256
+      essential = true
+      portMappings = [
+        {
+          containerPort = 443
+          hostPort      = 443
+        }
+      ]
+    }
+  ]))
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.container_definitions[0].name == "first"
+	}
+
 	void "should handle interpolation syntax"() {
 		given:
 
