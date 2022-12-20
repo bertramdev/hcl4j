@@ -83,7 +83,12 @@ public class HCLBaseFunctions {
             if(arguments.size() == 2) {
                 if(arguments.get(0) instanceof Collection) {
                     Collection list = (Collection)(arguments.get(0));
-                    return list.contains(arguments.get(1));
+                    try {
+                        return list.contains(arguments.get(1));
+                    } catch(ClassCastException ex) {
+                        return null;
+                    }
+
                 } else {
                     //invalid stuff
                     return null; //Invalid Function Spec
