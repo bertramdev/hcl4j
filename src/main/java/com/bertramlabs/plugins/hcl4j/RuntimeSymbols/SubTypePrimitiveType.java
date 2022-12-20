@@ -7,11 +7,20 @@ public class SubTypePrimitiveType extends PrimitiveType {
 	 * longer used. please reference the getChildren() method for child types if exists.
 	 * @deprecated
 	 */
-	public PrimitiveType subType;
+	protected PrimitiveType subType;
 	
 	public SubTypePrimitiveType(PrimitiveType subType,String name, Integer line, Integer column,Integer position) {
 		super(name,line,column,position);
 		this.subType = subType;
+	}
+
+	public PrimitiveType getSubType() {
+		if(this.getChildren().size() > 0) {
+			if(this.getChildren().get(0) instanceof SubTypePrimitiveType) {
+				return (SubTypePrimitiveType)(this.getChildren().get(0));
+			}
+		}
+		return null;
 	}
 
 	public String getSymbolName() {

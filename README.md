@@ -20,9 +20,9 @@ dependencies {
 }
 ```
 
-## Whats New
+## What's New
 
-* **0.6.2** Handling class cast exception on contains in some scenarios
+* **0.6.2** Handling class cast exception on contains in some scenarios and alias subType on primitive types to check children
 * **0.6.1** Handling (any) object sub type primitive. Handling non quote enclosed block attributes. Added jsonencode and jsondecode function implementations.
 * **0.6.0** Runtime parsing of Conditional Expressions, Mathematical Operators, String Interpolation now supported. Added additional Terraform Base Functions. Improved parser syntax to handle some outliar formats. Nested Type Primitives now work more completely (subType no longer used, check children of the Primitive Symbol)
 * **0.5.0** Runtime Parsing is now supported and for loops. There are huge improvements to support actually evaluating complex runtime operations during the parsing of the hcl. variables can even be processed via the parseVars method.
