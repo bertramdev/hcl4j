@@ -841,6 +841,9 @@ public class HCLParser {
 				} else if(child instanceof  Symbol) {
 					elementResult = processSymbol(child,result);
 				}
+				if(elementResult instanceof VariableTree) { //we were unable to evaluate a sub argument... abort function evaluation
+					return null; // function evaluation aborted. perhaps throw error for later based on if ignoreExceptions is on or not
+				}
 				functionArguments.add(elementResult);
 			}
 			return functionMethod.method(functionArguments);
