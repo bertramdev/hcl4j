@@ -16,12 +16,13 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.6.2"
+	compile "com.bertramlabs.plugins:hcl4j:0.6.3"
 }
 ```
 
 ## What's New
 
+* **0.6.3** Updated Gradle Dependencies to most recent versions. Fixed issue with accessing local vars from multiple `locals{}` blocks in same context. Function calls with non evaluated arguments are no longer processed for safety.
 * **0.6.2** Handling class cast exception on contains in some scenarios and alias subType on primitive types to check children
 * **0.6.1** Handling (any) object sub type primitive. Handling non quote enclosed block attributes. Added jsonencode and jsondecode function implementations.
 * **0.6.0** Runtime parsing of Conditional Expressions, Mathematical Operators, String Interpolation now supported. Added additional Terraform Base Functions. Improved parser syntax to handle some outliar formats. Nested Type Primitives now work more completely (subType no longer used, check children of the Primitive Symbol)
