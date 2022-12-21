@@ -861,7 +861,7 @@ public class HCLParser {
 					if(context == null && x == 0) {
 						switch(child.getName()) {
 							case "local":
-								context = result.get("locals");
+								context = flattenContext(result.get("locals"));
 								break;
 							case "var":
 								variableLookup = true;
@@ -959,6 +959,25 @@ public class HCLParser {
 			return evalSymbol;
 		} else {
 			return null;
+		}
+	}
+
+	protected Object flattenContext(Object context) {
+		if(context == null) {
+			return null;
+		} else if(context instanceof Collection) {
+			LinkedHashMap<String,Object> contextMap = new LinkedHashMap<>();
+			for(Object contextObj : (Collection)context) {
+				if(contextObj instanceof Map) {
+					Map<String,Object> currentContextMap = (Map<String,Object>)contextObj;
+					for(String key : currentContextMap.keySet()) {
+						contextMap.put(key,currentContextMap.get(key));
+					}
+				}
+			}
+			return contextMap;
+		} else {
+			return context;
 		}
 	}
 

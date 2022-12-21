@@ -218,6 +218,29 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 	}
 
 
+	void "should handle multiple locals{} blocks for context"() {
+		given:
+		def hcl = '''
+locals {
+  domains = ["a.example.com", "b.example.com"]
+}
+locals {
+ c = "Hello there person"
+}
+
+resource "test_instance" "test {
+  name = local.c
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.resource.test_instance.test.name == "Hello there person"
+	}
+
+
 
 	void "should handle complex type parsing"() {
 		given:
@@ -684,6 +707,24 @@ array_set = [{
 		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.array_set?.size() == 2
+	}
+
+	void "it should handle end of line comments with hyphens"() {
+		given:
+		def hcl = '''
+terraform {
+  backend "s3" {
+    bucket = "my-configuration"     # in my-main account
+    key = "my-terraform-state"
+    region = "us-west-1"
+  }
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.terraform.backend.s3.bucket == "my-configuration"
 	}
 
 
