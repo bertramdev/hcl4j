@@ -296,6 +296,7 @@ InputCharacter = [^\r\n]
 WhiteSpace     = {LineTerminator} | [ \t\f]
 WhiteSpaceOpt = [ \t\f]+?
 WhiteSpaceSL = [ \t\f]+
+WhiteSpaceNLOpt = [ \t\f\r\n]+?
 
 /* comments */
 Comment = {TraditionalComment} | {EndOfLineComment} | {EndOfLineCommentHash} | {DocumentationComment}
@@ -303,8 +304,8 @@ Comment = {TraditionalComment} | {EndOfLineComment} | {EndOfLineCommentHash} | {
 
 TraditionalComment   = "/*" [^*]+ ~"*/" | "/*" "*"+ "/"
 // Comment can be the last line of the file, without line terminator.
-EndOfLineComment     = "//" {InputCharacter}* {LineTerminator}?
-EndOfLineCommentHash     = "#" {InputCharacter}* {LineTerminator}?
+EndOfLineComment     = "//" {InputCharacter}*
+EndOfLineCommentHash     = "#" {InputCharacter}*
 DocumentationComment = "/**" {CommentContent} "*"+ "/"
 CommentContent       = ( [^*] | \*+ [^/*] )* 
 
@@ -351,7 +352,7 @@ HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} "=" | {HCLQuotedPropertyName} 
 
 MapKeyDef = {MapKey} ":"
 MapKey = {HCLAttributeName} | "\"" {HCLDoubleStringCharacters} "\""
-MapBlockStart = "{" {WhiteSpaceOpt} {MapKeyDef}
+MapBlockStart = "{" {WhiteSpaceNLOpt} {MapKeyDef}
 
 HCLDoubleStringCharacters = {HCLDoubleStringCharacter}*
 HCLSingleStringCharacters = {HCLSingleStringCharacter}*

@@ -228,7 +228,7 @@ locals {
  c = "Hello there person"
 }
 
-resource "test_instance" "test {
+resource "test_instance" "test" {
   name = local.c
 }
 '''
@@ -1393,6 +1393,7 @@ resource "aws_api_gateway_account" "parent" {
 		HCLParser parser = new HCLParser();
 		when:
 		def results = parser.parse(hcl)
+		// println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		println results
 		then:
 		results.resource["aws_api_gateway_rest_api"]["parent"] != null
