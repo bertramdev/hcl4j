@@ -691,6 +691,21 @@ variable "credentials" {
 	}
 
 
+  void "it should handle map objects"() {
+  	given:
+  	def hcl = '''
+my_object = {
+  object_elem_a: 1,
+  object_elem_b: 2
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
+		then:
+		results.my_object.object_elem_a == 1
+  }
 
 	void "it should handle closures inside an array"() {
 		given:
