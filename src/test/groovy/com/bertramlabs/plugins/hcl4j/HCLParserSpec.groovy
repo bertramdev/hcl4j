@@ -743,6 +743,24 @@ array_set = [ "test", #comment goes here
 		results.array_set?.size() == 2
 	}
 
+	void "it should handle hyphens in a comment"() {
+		given:
+		def hcl = '''
+terraform {
+  backend "s3" {
+    bucket = "my-configuration"     # in my-main account
+    key = "my-terraform-state"
+    region = "us-west-1"
+  }
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.terraform.backend.s3.bucket == "my-configuration"
+	}
+
 
 
 	void "it should handle variable references"() {
