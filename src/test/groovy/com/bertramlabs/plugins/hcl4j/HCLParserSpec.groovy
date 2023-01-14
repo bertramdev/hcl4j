@@ -1497,4 +1497,24 @@ resource "aws_instance" "bw-instance-1" {
 	results.resource["aws_instance"]["bw-instance-1"] != null
 
 	}
+
+	void "it should parse dashes in comments"() {
+		given:
+		def hcl = '''
+terraform {
+  backend "s3" {
+    bucket = "my-configuration"     # in my-main account
+    key = "my-terraform-state"
+    region = "us-west-1"
+  }
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.size() == 1
+	}
+
 }
