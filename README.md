@@ -16,12 +16,14 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.6.3"
+	compile "com.bertramlabs.plugins:hcl4j:0.6.5"
 }
 ```
 
 ## What's New
 
+* **0.6.5** Fixed issue with same line comments sometimes causing a parser error as well as Maps with new line terminators causing issues
+* **0.6.4** Improved toString() behavior of VariableTree when serializing to JSON
 * **0.6.3** Updated Gradle Dependencies to most recent versions. Fixed issue with accessing local vars from multiple `locals{}` blocks in same context. Function calls with non evaluated arguments are no longer processed for safety.
 * **0.6.2** Handling class cast exception on contains in some scenarios and alias subType on primitive types to check children
 * **0.6.1** Handling (any) object sub type primitive. Handling non quote enclosed block attributes. Added jsonencode and jsondecode function implementations.
@@ -50,3 +52,4 @@ For More Information on the HCL Syntax Please see the project page:
 
 * for tuples and objects are processed but not evaluated
 * add more method definitions for base terraform functions
+* add handlers for data lookup modules
