@@ -823,8 +823,16 @@ testConditional6 = worldVar == "world" ? "yes" : "no"
 testConditional7 = worldVar == "world" && 3 > 2 ? "yes" : "no"
 testConditional8 = worldVar == "world" && 3 < 2 ? "yes" : "no"
 testConditional9 = worldVar == "world" || 3 < 2 ? "yes" : "no"
+locals {
+	size = "${var.instance_size == "m4.xlarge" ? "m4.xlarge" : ( var.instance_size == "m4.large" ? "m4.large" : ( var.instance_size == "t2.medium" ? "t2.medium" : "t2.micro" )) }"
+}
+
+
+
 '''
 		HCLParser parser = new HCLParser();
+		parser.setVariable("instance_size","blah")
+
 		when:
 		def results = parser.parse(hcl)
 		then:
@@ -837,6 +845,8 @@ testConditional9 = worldVar == "world" || 3 < 2 ? "yes" : "no"
 		results.testConditional7 == "yes"
 		results.testConditional8 == "no"
 		results.testConditional9 == "yes"
+		results.locals.size == "t2.micro"
+
 	}
 
 

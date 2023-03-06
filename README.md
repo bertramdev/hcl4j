@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.6.6** Fixed nested strings inside an interpolation syntax as well as some add conditional checks
 * **0.6.5** Fixed issue with same line comments sometimes causing a parser error as well as Maps with new line terminators causing issues
 * **0.6.4** Improved toString() behavior of VariableTree when serializing to JSON
 * **0.6.3** Updated Gradle Dependencies to most recent versions. Fixed issue with accessing local vars from multiple `locals{}` blocks in same context. Function calls with non evaluated arguments are no longer processed for safety.

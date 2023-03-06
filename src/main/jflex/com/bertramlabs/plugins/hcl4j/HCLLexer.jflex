@@ -169,6 +169,16 @@ HCLParserException
               yybegin(HCLATTRIBUTEVALUE);
     }
 
+    private void startNestedStringExpression() {
+      StringInterpolatedExpression currentAttribute = new StringInterpolatedExpression(yyline,yycolumn,yychar);
+      if(currentBlock == null) {
+        elementStack.add(currentAttribute);
+      } else {
+        currentBlock.appendChild(currentAttribute);
+      }
+      currentBlock = currentAttribute;      
+    }
+
 
   private void startVariableTree() {
           VariableTree currentAttribute = new VariableTree(yyline,yycolumn,yychar);
@@ -531,7 +541,7 @@ AssignmentExpression = [^]
   \[                      { startArray();/* process an array */ }
   {MapBlockStart}         { startMap(); yypushback(yylength()-1) ; yybegin(HCLMAP);}
   \{                      {  blockNames = new ArrayList<String>(); blockNames.add(currentBlock.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
-  \"                      {yybegin(STRINGDOUBLE); string.setLength(0); }
+  \"                      {if(currentBlock instanceof StringInterpolatedExpression) {startNestedStringExpression();} yybegin(STRINGDOUBLE); string.setLength(0); }
   {MLineModifierStart}    {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
   {MLineStart}            {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(2).trim();}
   {True}                  { currentBlock.appendChild(new HCLValue("boolean","true",yyline,yycolumn,yychar)) ;  }
@@ -582,6 +592,7 @@ AssignmentExpression = [^]
     \)             { yypushback(yylength()); exitAttribute(true);}
     \,             { yypushback(yylength()); exitAttribute(true);}
     :              { yypushback(yylength()); exitAttribute(true); }
+    \?              { yypushback(yylength()); exitAttribute(true); }
     \.             { /*ignore*/ }
     \}                             { yypushback(yylength()); exitAttribute(true);  }
     {LineTerminator}               { yypushback(yylength()); exitAttribute(true);   }
