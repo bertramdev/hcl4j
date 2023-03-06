@@ -913,6 +913,24 @@ test_var = "testvar1"
 
 	}
 
+	void "it should handle lack of spaces between operators"() {
+		given:
+				def tfvars = '''
+storage_type = "io1"
+iops=1000
+max_allocated_storage=1000
+'''
+		def hcl = '''
+locals { var_iops = { value = var.storage_type == "io1" ? max(var.iops, var.max_allocated_storage*0.5) : null}}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		parser.parseVars(tfvars,false);
+		def results = parser.parse(hcl)
+		then:
+		results.locals.var_iops.value == 1000
+	}
+
 
 
 //	void "it should ignore complex for loops for now"() {

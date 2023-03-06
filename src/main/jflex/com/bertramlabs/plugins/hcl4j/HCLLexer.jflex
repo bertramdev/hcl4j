@@ -594,6 +594,8 @@ AssignmentExpression = [^]
     :              { yypushback(yylength()); exitAttribute(true); }
     \?              { yypushback(yylength()); exitAttribute(true); }
     \.             { /*ignore*/ }
+    {Conditional}                  { yypushback(yylength()); exitAttribute(true); }
+    {Operation}                    { yypushback(yylength()); exitAttribute(true); }
     \}                             { yypushback(yylength()); exitAttribute(true);  }
     {LineTerminator}               { yypushback(yylength()); exitAttribute(true);   }
     {Comment}                      { exitAttribute(true); }
