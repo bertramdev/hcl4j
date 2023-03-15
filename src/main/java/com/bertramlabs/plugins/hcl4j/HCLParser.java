@@ -570,6 +570,14 @@ public class HCLParser {
 									results = false;
 								}
 								break;
+							case "!":
+								Object notResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);
+								if(notResult == null || notResult.equals(false)) {
+									results = true;
+								} else {
+									results = false;
+								}
+								break;
 							case "+":
 								if(results instanceof String) {
 									Object rightResult = processSymbolPass2(symbol.getChildren().get(++x),nestedMap);

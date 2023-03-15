@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -396,6 +398,45 @@ public class HCLBaseFunctions {
             }
             return null;
         });
+
+        parser.registerFunction("base64encode", (arguments) -> {
+            if(arguments.size() > 0) {
+                String content = (String)(arguments.get(0));
+                return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+            }
+            return null;
+        });
+
+        parser.registerFunction("base64decode", (arguments) -> {
+            if(arguments.size() > 0) {
+                String content = (String)(arguments.get(0));
+                byte[] decodedBytes = Base64.getDecoder().decode(content);
+                return new String(decodedBytes,StandardCharsets.UTF_8);
+            }
+            return null;
+        });
+
+
+        parser.registerFunction("textencodebase64", (arguments) -> {
+            if(arguments.size() > 1) {
+                String content = (String)(arguments.get(0));
+                String encoding = (String)(arguments.get(1));
+                return Base64.getEncoder().encodeToString(content.getBytes(Charset.forName(encoding)));
+            }
+            return null;
+        });
+
+        parser.registerFunction("textdecodebase64", (arguments) -> {
+            if(arguments.size() > 1) {
+                String content = (String)(arguments.get(0));
+                String encoding = (String)(arguments.get(1));
+
+                byte[] decodedBytes = Base64.getDecoder().decode(content);
+                return new String(decodedBytes,Charset.forName(encoding));
+            }
+            return null;
+        });
     }
+
 
 }

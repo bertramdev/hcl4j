@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.6.8** Fixed ! (not) operator and added base64encode, base64decode, textdecodebase64, textencodebase64
 * **0.6.7** Fixed operators called on variables without spaces
 * **0.6.6** Fixed nested strings inside an interpolation syntax as well as some add conditional checks
 * **0.6.5** Fixed issue with same line comments sometimes causing a parser error as well as Maps with new line terminators causing issues

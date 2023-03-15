@@ -882,6 +882,7 @@ test_var = "testvar1"
 		  local_code = "localcode1"
 		  start = 1
 		  end = 3
+		  maybe = true
 		}
 		
 		resource "test" "me" {
@@ -894,6 +895,7 @@ test_var = "testvar1"
 		 math = local.start + local.end
 		 operations = 2 + 4 / 2
 		 operationsOrder = 2 + (4 / 2)
+		 perhaps = ! local.maybe
 		}
 '''
 		HCLParser parser = new HCLParser();
@@ -910,6 +912,7 @@ test_var = "testvar1"
 		results.resource.test.me.should_not_exist == null
 		results.resource.test.me.operations == 3
 		results.resource.test.me.operationsOrder == 4
+		results.resource.test.me.perhaps == false
 
 	}
 
