@@ -936,7 +936,11 @@ public class HCLParser {
 					} else if (elementResult != null && elementResult instanceof Double && context != null) {
 						//index position
 						Double elementDouble = (Double)elementResult;
-						context = ((List)context).get(elementDouble.intValue());
+						if(context instanceof Map) {
+							context = ((Map)context).get(elementDouble.intValue());
+						} else {
+							context = ((List)context).get(elementDouble.intValue());	
+						}
 					} else {
 						context = null;
 					}
