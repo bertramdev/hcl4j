@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.6.9** Fixed some null pointer issues if content on base64encode was null and some exceptions on array traversal
 * **0.6.8** Fixed ! (not) operator and added base64encode, base64decode, textdecodebase64, textencodebase64
 * **0.6.7** Fixed operators called on variables without spaces
 * **0.6.6** Fixed nested strings inside an interpolation syntax as well as some add conditional checks

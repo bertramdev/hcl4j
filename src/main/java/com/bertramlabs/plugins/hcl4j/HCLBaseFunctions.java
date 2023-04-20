@@ -402,7 +402,9 @@ public class HCLBaseFunctions {
         parser.registerFunction("base64encode", (arguments) -> {
             if(arguments.size() > 0) {
                 String content = (String)(arguments.get(0));
-                return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+                if(content != null) {
+                    return Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
+                }
             }
             return null;
         });
@@ -410,8 +412,11 @@ public class HCLBaseFunctions {
         parser.registerFunction("base64decode", (arguments) -> {
             if(arguments.size() > 0) {
                 String content = (String)(arguments.get(0));
-                byte[] decodedBytes = Base64.getDecoder().decode(content);
-                return new String(decodedBytes,StandardCharsets.UTF_8);
+                if(content != null) {
+                    byte[] decodedBytes = Base64.getDecoder().decode(content);
+                    return new String(decodedBytes,StandardCharsets.UTF_8);
+                }
+                
             }
             return null;
         });
@@ -421,7 +426,9 @@ public class HCLBaseFunctions {
             if(arguments.size() > 1) {
                 String content = (String)(arguments.get(0));
                 String encoding = (String)(arguments.get(1));
-                return Base64.getEncoder().encodeToString(content.getBytes(Charset.forName(encoding)));
+                if(content != null) {
+                    return Base64.getEncoder().encodeToString(content.getBytes(Charset.forName(encoding)));
+                }
             }
             return null;
         });
@@ -429,10 +436,13 @@ public class HCLBaseFunctions {
         parser.registerFunction("textdecodebase64", (arguments) -> {
             if(arguments.size() > 1) {
                 String content = (String)(arguments.get(0));
-                String encoding = (String)(arguments.get(1));
+                if(content != null) {
+                    String encoding = (String)(arguments.get(1));
 
-                byte[] decodedBytes = Base64.getDecoder().decode(content);
-                return new String(decodedBytes,Charset.forName(encoding));
+                    byte[] decodedBytes = Base64.getDecoder().decode(content);
+                    return new String(decodedBytes,Charset.forName(encoding));
+                }
+                
             }
             return null;
         });
