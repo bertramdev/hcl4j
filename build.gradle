@@ -30,7 +30,7 @@ ext {
 
 
 group = 'com.bertramlabs.plugins'
-version = '0.7.0'
+version = '0.7.1'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = "1.8"
@@ -46,10 +46,13 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
     api 'com.fasterxml.jackson.core:jackson-annotations:2.14.1'
     api 'com.fasterxml.jackson.core:jackson-core:2.14.1'
+    api "org.slf4j:slf4j-parent:1.7.26"
+    api "org.slf4j:slf4j-api:1.7.26"
     testImplementation platform("org.spockframework:spock-bom:2.3-groovy-4.0")
     testImplementation "org.spockframework:spock-core"
     testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
     testImplementation "org.apache.groovy:groovy-all:4.0.4"
+
 
     // testImplementation "org.spockframework:spock-core:2.3-groovy-3.0"
 }

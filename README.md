@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.7.1** Adding some parser exception safety and added slf4j dependency for logging errors
 * **0.7.0** Adding some null safety on some of the base functions
 * **0.6.9** Fixed some null pointer issues if content on base64encode was null and some exceptions on array traversal
 * **0.6.8** Fixed ! (not) operator and added base64encode, base64decode, textdecodebase64, textencodebase64

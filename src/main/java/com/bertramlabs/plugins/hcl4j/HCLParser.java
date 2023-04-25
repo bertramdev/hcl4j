@@ -21,6 +21,8 @@ import com.bertramlabs.plugins.hcl4j.symbols.*;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Parser for the Hashicorp Configuration Language (HCL). This is the primary endpoint and converts the HCL syntax into a {@link Map}.
@@ -41,7 +43,7 @@ import java.util.*;
  * @author David Estes
  */
 public class HCLParser {
-
+	static Logger log = LoggerFactory.getLogger(HCLParser.class);
 	//Time to parse the AST Tree into a Map
 	protected Map<String,Object> result = new LinkedHashMap<>();
 	protected Map<String,Object> variables = new LinkedHashMap<>();
@@ -296,33 +298,28 @@ public class HCLParser {
 	public Map<String,Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
 		HCLLexer lexer = new HCLLexer(reader);
 		ArrayList<Symbol> rootBlocks;
+		try {
+			lexer.yylex();	
+			rootBlocks = lexer.elementStack;
 
-		if(ignoreParserExceptions) {
-			try {
-				lexer.yylex();	
-			} catch(Exception ex) {
-				//TODO: Log the exception
+
+			result = new LinkedHashMap<>();
+			Map<String,Object> mapPosition = result;
+
+			for(Symbol currentElement : rootBlocks) {
+				processSymbolPass1(currentElement,mapPosition);
 			}
-		} else {
-			lexer.yylex();
-		}
-		
 
-		rootBlocks = lexer.elementStack;
-
-
-		result = new LinkedHashMap<>();
-		Map<String,Object> mapPosition = result;
-
-		for(Symbol currentElement : rootBlocks) {
-			processSymbolPass1(currentElement,mapPosition);
-		}
-
-		//pass2
-		for(String key : result.keySet()) {
+			//pass2
+			for(String key : result.keySet()) {
 				processSymbolPass2(result.get(key),result);
+			}
+		} catch(Exception ex) {
+			log.error("Error Parsing HCL...{}",ex.getMessage(),ex);
+			if(ignoreParserExceptions != true) { //its nullable so thats why we look at inverse
+				throw new RuntimeException(ex);
+			}
 		}
-//		System.out.println(result);
 		return result;
 	}
 
