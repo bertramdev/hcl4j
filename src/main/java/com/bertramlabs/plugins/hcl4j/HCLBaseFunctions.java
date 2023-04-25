@@ -24,21 +24,21 @@ import java.util.*;
 public class HCLBaseFunctions {
     static void registerBaseFunctions(HCLParser parser) {
         parser.registerFunction("upper", (arguments) -> {
-            if(arguments.size() > 0) {
+            if(arguments.size() > 0 && arguments.get(0) != null) {
                 return arguments.get(0).toString().toUpperCase(Locale.ROOT);
             }
             return null;
         });
 
         parser.registerFunction("lower", (arguments) -> {
-            if(arguments.size() > 0) {
+            if(arguments.size() > 0 && arguments.get(0) != null) {
                 return arguments.get(0).toString().toLowerCase(Locale.ROOT);
             }
             return null;
         });
 
         parser.registerFunction("format", (arguments) -> {
-            if(arguments.size() > 0) {
+            if(arguments.size() > 0  && arguments.get(0) != null) {
                 String val = arguments.get(0).toString();
                 ArrayList<Object> args = new ArrayList<>();
                 for(int x=1;x<arguments.size();x++) {
@@ -51,7 +51,7 @@ public class HCLBaseFunctions {
 
 
         parser.registerFunction("trimspace", (arguments) -> {
-            if(arguments.size() > 0) {
+            if(arguments.size() > 0 && arguments.get(0) != null) {
                 return arguments.get(0).toString();
             }
             return null;
@@ -59,7 +59,7 @@ public class HCLBaseFunctions {
 
 
         parser.registerFunction("trim", (arguments) -> {
-            if(arguments.size() > 0) {
+            if(arguments.size() > 0 && arguments.get(0) != null) {
                 return arguments.get(0).toString();
             }
             return null;
@@ -67,7 +67,7 @@ public class HCLBaseFunctions {
 
 
         parser.registerFunction("strrev", (arguments) -> {
-            if(arguments.size() > 0) {
+            if(arguments.size() > 0 && arguments.get(0) != null) {
                 String str = arguments.get(0).toString();
                 String reversed = "";
                 char ch;
