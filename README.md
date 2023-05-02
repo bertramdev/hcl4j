@@ -16,12 +16,13 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.7.0"
+	compile "com.bertramlabs.plugins:hcl4j:0.7.2"
 }
 ```
 
 ## What's New
 
+* **0.7.2** Handling nested Block types in a List as a non null value
 * **0.7.1** Adding some parser exception safety and added slf4j dependency for logging errors
 * **0.7.0** Adding some null safety on some of the base functions
 * **0.6.9** Fixed some null pointer issues if content on base64encode was null and some exceptions on array traversal

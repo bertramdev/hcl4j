@@ -435,9 +435,19 @@ public class HCLParser {
 				}
 			}
 			return nestedMap;
+		} else if(val instanceof HCLBlock) {
+			 HCLBlock symbol = (HCLBlock)(val);
+			Map<String,Object> nestedMap = new LinkedHashMap<>();
+			if((symbol.getChildren() != null)) {
+				for(Symbol child : symbol.getChildren()) {
+					processSymbolPass2(child, nestedMap);
+				}
+			}
+			return nestedMap;
 		} else if(val instanceof HCLArray) {
 			 HCLArray symbol = (HCLArray)(val);
 			if(symbol.getChildren() != null) {
+
 				List<Object> objectList = new ArrayList<>();
 				for(Symbol child : symbol.getChildren()) {
 					Map<String,Object> nestedMap = new LinkedHashMap<>();

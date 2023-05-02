@@ -722,6 +722,7 @@ array_set = [{
 		println JsonOutput.prettyPrint(JsonOutput.toJson(results));
 		then:
 		results.array_set?.size() == 2
+		results.array_set[1].blah == "test2"
 	}
 
 	void "it should handle end of line comments with hyphens"() {
