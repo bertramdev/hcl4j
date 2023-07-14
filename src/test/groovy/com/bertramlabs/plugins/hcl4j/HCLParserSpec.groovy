@@ -475,7 +475,7 @@ escapedInterpolation = "$${var.firstName}"
 variable {
 description = <<EOL
 This is a cool String
-I love multiple lines
+  I love multiple lines
 Don't you?
 EOL
 }
@@ -488,7 +488,7 @@ EOL
 		then:
 		results.containsKey('variable') == true
 		results.variable.description == '''This is a cool String
-I love multiple lines
+  I love multiple lines
 Don't you?
 '''
 	}
