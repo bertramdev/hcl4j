@@ -47,10 +47,13 @@ public class HCLParser {
 	//Time to parse the AST Tree into a Map
 	protected Map<String,Object> result = new LinkedHashMap<>();
 	protected Map<String,Object> variables = new LinkedHashMap<>();
+	protected Map<String,Object> dataLookups = new LinkedHashMap<>();
 	protected Map<String,HCLFunction> functionRegistry = new LinkedHashMap<>();
+	protected Map<String,HCLDataLookup> dataLookupRegistry = new LinkedHashMap<>();
 
 	public HCLParser() {
 		HCLBaseFunctions.registerBaseFunctions(this);
+		HCLBaseDataLookups.registerBaseFunctions(this);
 	}
 
 	/**
@@ -77,6 +80,16 @@ public class HCLParser {
 	 */
 	public void registerFunction(String functionName, HCLFunction function) {
 		this.functionRegistry.put(functionName,function);
+	}
+
+	/**
+	 * Registers Data Lookup implementations for HCL references. By default, the {@link HCLDataLookup} are loaded.
+	 * Additional data lookups can be defined via this method for custom lookup providers if necessary.
+	 * @param lookupName the name of the data lookup to be called
+	 * @param dataLookup the lambda function implementation to be evaluated during the parse
+	 */
+	public void registerDataLookup(String lookupName, HCLDataLookup dataLookup) {
+		this.dataLookupRegistry.put(lookupName,dataLookup);
 	}
 
 	/**
@@ -298,6 +311,7 @@ public class HCLParser {
 	public Map<String,Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
 		HCLLexer lexer = new HCLLexer(reader);
 		ArrayList<Symbol> rootBlocks;
+		dataLookups = new LinkedHashMap<>();
 		try {
 			lexer.yylex();	
 			rootBlocks = lexer.elementStack;
@@ -311,8 +325,19 @@ public class HCLParser {
 			}
 
 			//pass2
+			if(result.get("locals") != null) {
+				processSymbolPass2(result.get("locals"),result);
+			}
+			if(result.get("variable") != null) {
+				processSymbolPass2(result.get("variable"),result);
+			}
+			if(result.get("data") != null) {
+				processSymbolPass2(result.get("data"),result);
+			}
 			for(String key : result.keySet()) {
-				processSymbolPass2(result.get(key),result);
+				if(!Objects.equals(key, "variable") && !Objects.equals(key, "data") && !Objects.equals(key, "locals")) {
+					processSymbolPass2(result.get(key),result);
+				}
 			}
 		} catch(Exception ex) {
 			log.error("Error Parsing HCL...{}",ex.getMessage(),ex);
@@ -443,6 +468,7 @@ public class HCLParser {
 					processSymbolPass2(child, nestedMap);
 				}
 			}
+			log.info("Nested Map: {}",nestedMap);
 			return nestedMap;
 		} else if(val instanceof HCLArray) {
 			 HCLArray symbol = (HCLArray)(val);
@@ -867,8 +893,36 @@ public class HCLParser {
 			return null;
 		}
 	}
+
+	protected Map<String,Object> evaluateDataLookup(String lookupName,String name,Map<String,Object> properties) throws HCLParserException {
+		if(dataLookupRegistry.get(lookupName) != null) {
+			try {
+				HCLDataLookup lookupMethod = dataLookupRegistry.get(lookupName);
+				Map mapPosition = (Map)(((Map)(result.get("data"))).get(lookupName));
+				processSymbolPass2(mapPosition.get(name),mapPosition);
+				Map<String,Object> lookupResults = lookupMethod.method(properties);
+
+				Map<String,Object> dataTypeLookup = (Map<String,Object>)(dataLookups.get(lookupName));
+				if(dataTypeLookup == null) {
+					dataTypeLookup = new LinkedHashMap<>();
+					dataLookups.put(lookupName,dataTypeLookup);
+				}
+				dataTypeLookup.put(name,lookupResults);
+				return lookupResults;
+			} catch(Exception ex) {
+				log.warn("Error Occurred Performing Data Source Lookup on {} from provider {}: {}",name,lookupName,ex.getMessage(),ex);
+			}
+			return null;
+		} else {
+			//TODO: DO we throw a method missing exception at some point
+			return null;
+		}
+	}
 	protected Object processEvaluation(EvalSymbol evalSymbol, Object context) throws HCLParserException{
 		Boolean variableLookup  = false;
+		Boolean dataLookup = false;
+		String dataLookupName = null;
+
 		if(evalSymbol instanceof VariableTree) {
 			for(int x = 0;x<evalSymbol.getChildren().size();x++) {
 				Symbol child = evalSymbol.getChildren().get(x);
@@ -885,11 +939,19 @@ public class HCLParser {
 								variableLookup = true;
 								context = variables;
 								break;
+							case "data":
+								log.info("Data Lookup Detected!");
+								dataLookup = true;
+								context = dataLookups;
+								break;
 							default:
 								context = result.get(child.getName());
 						}
 
 					} else if(context != null){
+						if(dataLookup && dataLookupName == null) {
+							dataLookupName = child.getName();
+						}
 						context = ((Map)context).get(child.getName());
 						if(variableLookup && context == null) {
 							if(result.get("variable") != null && result.get("variable") instanceof Map) {
@@ -906,6 +968,22 @@ public class HCLParser {
 								}
 
 
+							}
+						}
+					} else {
+						//if we have not cached a data lookup call we run it this way
+						if(dataLookup && dataLookupName == null) {
+							dataLookupName = child.getName();
+						} else if (dataLookup && dataLookupName != null) {
+							if(result.get("data") != null && result.get("data") instanceof Map) {
+								Map dataDefinitions = (Map)(result.get("data"));
+								if(dataDefinitions.get(dataLookupName) instanceof Map) {
+									Map dataLookupDefinition = (Map) dataDefinitions.get(dataLookupName);
+									if(dataLookupDefinition.get(child.getName()) instanceof Map) {
+										//we have a data lookup definition we need to run
+										context = evaluateDataLookup(dataLookupName,child.getName(),(Map<String,Object>)(dataLookupDefinition.get(child.getName())));
+									}
+								}
 							}
 						}
 					}
@@ -1001,63 +1079,5 @@ public class HCLParser {
 		} else {
 			return context;
 		}
-	}
-
-	protected Object evaluateEvalSymbol(EvalSymbol evalSymbol) {
-		if(evalSymbol instanceof Variable) {
-			return evaluateVariable((Variable) evalSymbol);
-		} else if(evalSymbol instanceof Function) {
-			return null;
-		} else if(evalSymbol instanceof ComputedTuple) {
-			return null;
-		}
-		return null;
-	}
-
-	protected Object evaluateVariable(Variable var) {
-
-		String[] variableArguments = var.getName().split("\\.");
-		Object currentVariableObject = null;
-		for(int x=0;x<variableArguments.length;x++) {
-			if(currentVariableObject == null && x > 0) {
-				return null; //dont error for now
-			}
-			String variableElement = variableArguments[x];
-			String varName = variableElement;
-			Boolean accessElement = false;
-			if(variableElement.indexOf("[") > -1) {
-				varName = variableElement.substring(0,variableElement.indexOf("["));
-				accessElement = true;
-			}
-			currentVariableObject = getVariableObject(varName,currentVariableObject);
-
-		}
-		return currentVariableObject;
-	}
-
-	protected Object getVariableObject(String varName, Object source) {
-		if(source != null && source instanceof Map) {
-			return ((Map<String,Object>)source).get(varName);
-		} else {
-			switch(varName) {
-				case "local":
-					if(result.get("locals") != null) {
-						Map<String,Object> localVariables = ((Map<String,Object>)(result.get("locals")));
-						return localVariables.get(varName);
-					} else {
-						return null;
-					}
-				case "var":
-					if(result.get("variable") != null) {
-						Map<String,Object> variableEntries = ((Map<String,Object>)(result.get("variable")));
-						return variableEntries.get(varName);
-					} else {
-						return null;
-					}
-				default:
-					return result.get(varName);
-			}
-		}
-
 	}
 }
