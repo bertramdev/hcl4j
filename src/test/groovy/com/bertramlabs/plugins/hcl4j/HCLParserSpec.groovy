@@ -897,6 +897,7 @@ test_var = "testvar1"
 		 operations = 2 + 4 / 2
 		 operationsOrder = 2 + (4 / 2)
 		 perhaps = ! local.maybe
+		 array_test = local.my_tags.1
 		}
 '''
 		HCLParser parser = new HCLParser();
@@ -914,6 +915,7 @@ test_var = "testvar1"
 		results.resource.test.me.operations == 3
 		results.resource.test.me.operationsOrder == 4
 		results.resource.test.me.perhaps == false
+		results.resource.test.me.array_test == "B"
 
 	}
 

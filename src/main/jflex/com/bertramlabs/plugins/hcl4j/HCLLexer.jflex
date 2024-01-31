@@ -350,6 +350,7 @@ SetPrimitive = set | set*\(
 ForInExpression = in
 
 DigitValue = [0-9\.\-]+
+WholeNumber = [0-9]+
 
 HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_]*
 HCLQuotedPropertyName = [\"] [^\r\n]+ [\"]
@@ -584,16 +585,17 @@ AssignmentExpression = [^]
 }
 
 <VARIABLETREE> {
-    {FunctionCall} {startFunction(); }
-    {Identifier}   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); }
-    \[             { startArray(); }
-    \]             { yypushback(yylength()); exitAttribute(true); }
-    \(             {startFunction(); }
-    \)             { yypushback(yylength()); exitAttribute(true);}
-    \,             { yypushback(yylength()); exitAttribute(true);}
-    :              { yypushback(yylength()); exitAttribute(true); }
-    \?              { yypushback(yylength()); exitAttribute(true); }
-    \.             { /*ignore*/ }
+    {FunctionCall}                 {startFunction(); }
+    {Identifier}                   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); }
+    {WholeNumber}                  { startArray(); currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar));exitAttribute(true); }
+    \[                             { startArray(); }
+    \]                             { yypushback(yylength()); exitAttribute(true); }
+    \(                             {startFunction(); }
+    \)                             { yypushback(yylength()); exitAttribute(true);}
+    \,                             { yypushback(yylength()); exitAttribute(true);}
+    :                              { yypushback(yylength()); exitAttribute(true); }
+    \?                             { yypushback(yylength()); exitAttribute(true); }
+    \.                             { /*ignore*/ }
     {Conditional}                  { yypushback(yylength()); exitAttribute(true); }
     {Operation}                    { yypushback(yylength()); exitAttribute(true); }
     \}                             { yypushback(yylength()); exitAttribute(true);  }
