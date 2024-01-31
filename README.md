@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.7.4** Fixing Array Access via tree traversal i.e. local.my_array.0 vs local.my_array[0]
 * **0.7.3** Fixing Multiline Formatting Issue
 * **0.7.2** Handling nested Block types in a List as a non null value
 * **0.7.1** Adding some parser exception safety and added slf4j dependency for logging errors
