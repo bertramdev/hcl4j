@@ -16,12 +16,13 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.7.3"
+	compile "com.bertramlabs.plugins:hcl4j:0.7.4"
 }
 ```
 
 ## What's New
 
+* **0.7.5** For Tuple with boolean conditionals as value expression did not work before
 * **0.7.4** Fixing Array Access via tree traversal i.e. local.my_array.0 vs local.my_array[0]
 * **0.7.3** Fixing Multiline Formatting Issue
 * **0.7.2** Handling nested Block types in a List as a non null value

@@ -30,7 +30,7 @@ ext {
 
 
 group = 'com.bertramlabs.plugins'
-version = '0.7.4'
+version = '0.7.5'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = "1.8"

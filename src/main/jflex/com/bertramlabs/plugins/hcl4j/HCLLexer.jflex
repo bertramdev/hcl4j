@@ -377,7 +377,7 @@ MLineStart = [\<] [\<] [\ ]? {HCLAttributeName}
 
 ExprTerm = {True} | {False} | {Null} | {DigitValue} | {Identifier} | {FunctionCall}
 Conditional = \|\| | \&\& | \> [=]* | \< [=]* | == | \!= | [?] | \: | if
-Operation = [\+\-\/\*\%\!]
+Operation = [\+\-\/\*\%] | \!
 Expression = {ExprTerm} | {Operation} | {Conditional}
 /*For Expression*/
 ForObjExpr = \{ [\n\t\f\r ]* {ForIntro}
@@ -556,13 +556,13 @@ AssignmentExpression = [^]
   {ListPrimitive}         { subTypePrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {SetPrimitive}         { subTypePrimitiveType = new SetPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {MapPrimitive}         { subTypePrimitiveType = new MapPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
-  {Conditional}                  { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); }
-  {Operation}                    { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); }
+  {Conditional}                  { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); System.out.println("Conditional Matched:" + yytext()); }
+  {Operation}                    { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); System.out.println("Operation Matched:" + yytext());}
   {EvaluatedExpression}          { startEvalExpression(); }
   {Comment}                      { /* ignore */ }
   {LineTerminator}               { if(currentBlock instanceof HCLAttribute) {exitAttribute(true); }  }
   \,                             { exitAttribute();}
-  \]                             { if(currentBlock instanceof HCLArray) {exitAttribute(true); } else if(currentBlock instanceof ForConditional) { exitAttribute(true); yypushback(yylength());}  }
+  \]                             { if(currentBlock instanceof HCLArray || currentBlock instanceof ComputedTuple) {exitAttribute(true); } else if(currentBlock instanceof ForConditional) { exitAttribute(true); yypushback(yylength());}  }
   {WhiteSpace}                   { /* ignore */ }
   \)                             { exitAttribute(true); }
 
@@ -623,6 +623,8 @@ AssignmentExpression = [^]
   :                 { yybegin(HCLATTRIBUTEVALUE);  }
   [\]]              { exitAttribute(true);  }
   {IfPrimitive}                { startForConditional(); }
+  {Conditional}                  { yybegin(HCLATTRIBUTEVALUE);  yypushback(yylength()); }
+  {Operation}                    { yybegin(HCLATTRIBUTEVALUE); yypushback(yylength());  }
   {Comment}                      { /* ignore */ }
   {WhiteSpace}                 { /* ignore */ }
   {LineTerminator}             { /* ignore */ }

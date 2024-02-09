@@ -744,6 +744,34 @@ terraform {
 	}
 
 
+	void "it should handle parsing complex for tuple expressions"() {
+		given:
+		def hcl ='''
+variable "aws_auth_users" {
+ description = "A list of objects where each object has userarn, aws_username, (k8s) username, and (k8s) groups, where groups is a list of groups to associate with the user. Leaving userarn as an empty string will pull the user ARN from AWS."
+ type = list(object({
+  userarn   = optional(string, null)
+  aws_username = optional(string, null)
+  username   = string
+  groups    = optional(list(string), [])
+ }))
+ default = []
+ 
+ validation {
+  condition   = alltrue([for v in var.aws_auth_users : v.userarn != null && v.aws_username != null])
+  error_message      = "Both userarn and aws_userarn may not be null."
+ }
+}
+
+		'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.variable["aws_auth_users"]['description'] == "A list of objects where each object has userarn, aws_username, (k8s) username, and (k8s) groups, where groups is a list of groups to associate with the user. Leaving userarn as an empty string will pull the user ARN from AWS."
+	}
+
+
 	void "it should handle comments inside an array"() {
 		given:
 		def hcl = '''
@@ -815,6 +843,7 @@ test3 = substr("hello world", 6, 10)
 		given:
 		def hcl = '''
 worldVar = "world"
+boolVar = true
 testConditional = 1 < 2 ? "yes" : "no"
 testConditional2 = 3 < 2 ? "yes" : "no"
 testConditional3 = "hello" == "hello" ? "yes" : "no"
@@ -824,6 +853,9 @@ testConditional6 = worldVar == "world" ? "yes" : "no"
 testConditional7 = worldVar == "world" && 3 > 2 ? "yes" : "no"
 testConditional8 = worldVar == "world" && 3 < 2 ? "yes" : "no"
 testConditional9 = worldVar == "world" || 3 < 2 ? "yes" : "no"
+testConditional10 = worldVar != "world" ? "yes" : "no"
+testConditional11 = !(worldVar == "world")
+testConditional12 = !boolVar
 locals {
 	size = "${var.instance_size == "m4.xlarge" ? "m4.xlarge" : ( var.instance_size == "m4.large" ? "m4.large" : ( var.instance_size == "t2.medium" ? "t2.medium" : "t2.micro" )) }"
 }
@@ -846,6 +878,9 @@ locals {
 		results.testConditional7 == "yes"
 		results.testConditional8 == "no"
 		results.testConditional9 == "yes"
+		results.testConditional10 == "no"
+		results.testConditional11 == false
+		results.testConditional12 == false
 		results.locals.size == "t2.micro"
 
 	}
