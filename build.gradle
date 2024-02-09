@@ -30,7 +30,7 @@ ext {
 
 
 group = 'com.bertramlabs.plugins'
-version = '0.7.5'
+version = '0.7.6'
 
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = "1.8"
@@ -49,8 +49,8 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
     api 'com.fasterxml.jackson.core:jackson-annotations:2.14.1'
     api 'com.fasterxml.jackson.core:jackson-core:2.14.1'
-    api "org.slf4j:slf4j-parent:1.7.26"
-    api "org.slf4j:slf4j-api:1.7.26"
+    api "org.slf4j:slf4j-parent:1.7.36"
+    api "org.slf4j:slf4j-api:1.7.36"
     api 'org.apache.httpcomponents:httpclient:4.5.13'
     api 'org.apache.httpcomponents:httpcore:4.4.15'
     api 'org.apache.httpcomponents:httpmime:4.5.13'
