@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.7.7** HCL Periods in attribute names referenced from Unicodes ID_Continue, fixed.
 * **0.7.6** SLF4j 1.7.36 upgrade to reduce CVE's
 * **0.7.5** For Tuple with boolean conditionals as value expression did not work before
 * **0.7.4** Fixing Array Access via tree traversal i.e. local.my_array.0 vs local.my_array[0]

@@ -188,6 +188,7 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 		def hcl = '''
 resource xxx "images" {
   default = "empty.jpg"
+  default.withperiod = "period.jpg"
 }
 '''
 		HCLParser parser = new HCLParser();
@@ -195,6 +196,7 @@ resource xxx "images" {
 		def results  = parser.parse(hcl)
 		then:
 		results.resource.xxx.images.default == "empty.jpg"
+		results.resource.xxx.images["default.withperiod"] == "period.jpg"
 	}
 
 

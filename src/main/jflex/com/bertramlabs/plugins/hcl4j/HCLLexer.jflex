@@ -352,7 +352,7 @@ ForInExpression = in
 DigitValue = [0-9\.\-]+
 WholeNumber = [0-9]+
 
-HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_]*
+HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_\.]*
 HCLQuotedPropertyName = [\"] [^\r\n]+ [\"]
 
 HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeName} {WhiteSpaceOpt} "{" [^]* "}"
