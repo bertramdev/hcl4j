@@ -16,12 +16,13 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.7.7"
+	compile "com.bertramlabs.plugins:hcl4j:0.8.0"
 }
 ```
 
 ## What's New
 
+* **0.8.0** HCL For Loop Tuples now evaluated.
 * **0.7.7** HCL Periods in attribute names referenced from Unicodes ID_Continue, fixed.
 * **0.7.6** SLF4j 1.7.36 upgrade to reduce CVE's
 * **0.7.5** For Tuple with boolean conditionals as value expression did not work before
@@ -62,6 +63,6 @@ For More Information on the HCL Syntax Please see the project page:
 
 ## Things to be Done
 
-* for tuples and objects are processed but not evaluated
+* for loop objects are processed but not evaluated
 * add more method definitions for base terraform functions
 * add handlers for data lookup modules

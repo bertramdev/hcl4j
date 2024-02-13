@@ -200,6 +200,29 @@ resource xxx "images" {
 	}
 
 
+
+	void "should handle test value with colon" () {
+		given:
+		def hcl = '''
+variable "variable1"{
+      default = [
+        {
+          key = "someKey"
+          attributes = {
+            "attribute1" = ":valueWithColon"
+          }
+        }
+      ]
+    }"""
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		then:
+		results.variable.variable1.default[0].attributes.attribute1 == ":valueWithColon"
+	}
+
+
 	void "should handle Map parsing"() {
 		given:
 
@@ -1115,10 +1138,61 @@ resource "aws_launch_configuration" "web" {
 		results.resource["aws_launch_configuration"]["web"]?.user_data != null
 	}
 
+	void "it should handle simple for tuples"() {
+		given:
+		def hcl = '''
+locals {
+swagger_path_method_parameters = [for my_value in [0,1,2,3]: my_value + 1 ]
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["swagger_path_method_parameters"] == [1,2,3,4]
+	}
+
+
+	void "it should handle conditional for tuples"() {
+		given:
+		def hcl = '''
+locals {
+swagger_path_method_parameters = [for my_value in [0,1,2,3]: (my_value + 1) if my_value != 3  ]
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["swagger_path_method_parameters"] == [1,2,3]
+	}
+
+
+	void "it should handle simple for tuples with index"() {
+		given:
+		def hcl = '''
+locals {
+swagger_path_method_parameters = [for i,my_value in [0,1,2,3]: "${i}:${my_value + 1}" ]
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["swagger_path_method_parameters"] == ["0:1.0","1:2.0","2:3.0","3:4.0"]
+	}
+
 	void "it should handle nested for tuples"() {
 		given:
 		def hcl = '''
 locals {
+	swagger_path_methods_split = [["a","b"],["c","d"]]
+	json_data = {
+		paths = {a: {b: true}, c:{d: false}}
+	}
 swagger_path_method_parameters = [for my_value in local.swagger_path_methods_split: 
       [for method_name, method_value in local.json_data["paths"][my_value[0]][my_value[1]]: format("%s:::%s:::%s", my_value[0], my_value[1], method_name)
       ]
@@ -1131,7 +1205,28 @@ swagger_path_method_parameters = [for my_value in local.swagger_path_methods_spl
 		println results
 		then:
 		results.locals["swagger_path_method_parameters"] != null
+	}
 
+
+	void "it should handle doubly nested for tuples"() {
+		given:
+		def hcl = '''
+locals {
+	swagger_path_methods_split = [["a","b"],["c","d"]]
+	json_data = {
+		paths = {a: {b: [1,2]}, c:{d: [3,4]]}}
+	}
+swagger_path_method_parameters = [for my_value in local.swagger_path_methods_split: 
+      [for val2 in local.json_data.paths[my_value[0]][my_value[1]] : val2]
+    ]
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["swagger_path_method_parameters"] != null
 	}
 
 	void "it should handle sample tf from wu"() {

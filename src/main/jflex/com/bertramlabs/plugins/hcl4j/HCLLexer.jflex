@@ -110,15 +110,7 @@ HCLParserException
       attribute = currentAttribute;
     }
 
-  private void startMap() {
-    HCLMap currentAttribute = new HCLMap(yyline,yycolumn,yychar);
-        if(currentBlock == null) {
-          elementStack.add(currentAttribute);
-        } else {
-          currentBlock.appendChild(currentAttribute);
-        }
-        currentBlock = currentAttribute;
-  }
+
 
   private void startInterpolatedString() {
     StringInterpolatedExpression currentAttribute;
@@ -359,11 +351,11 @@ HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeN
 
 HCLBlockAttribute = {WhiteSpaceOpt} "\"" {HCLDoubleStringCharacters} "\"" {WhiteSpaceOpt} | {WhiteSpace} "\'" {HCLSingleStringCharacters} "\'" {WhiteSpaceOpt} | {WhiteSpace} {HCLAttributeName}  {WhiteSpaceOpt}
 
-HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} "=" | {HCLQuotedPropertyName} {WhiteSpaceOpt} "="
+HCLAttribute = {HCLAttributeName} {WhiteSpaceOpt} [=:] | {HCLQuotedPropertyName} {WhiteSpaceOpt} [=:]
 
 MapKeyDef = {MapKey} ":"
 MapKey = {HCLAttributeName} | "\"" {HCLDoubleStringCharacters} "\""
-MapBlockStart = "{" {WhiteSpaceNLOpt} {MapKeyDef}
+
 
 HCLDoubleStringCharacters = {HCLDoubleStringCharacter}*
 HCLSingleStringCharacters = {HCLSingleStringCharacter}*
@@ -500,33 +492,15 @@ AssignmentExpression = [^]
 <HCLATTRIBUTE> {
   \"                             {yybegin(STRINGDOUBLE); stringAttributeName = true ;string.setLength(0);}
   {HCLAttributeName}             {startAttribute(yytext());}
-    \=                              {yybegin(HCLATTRIBUTEVALUE); }
+  \=                              {yybegin(HCLATTRIBUTEVALUE); }
+  \:                              {yybegin(HCLATTRIBUTEVALUE); }
+  \,                              { /*ignore*/ }
     /* whitespace */
     {WhiteSpace}                   { /* ignore */ } 
 }
 
 
-<HCLMAP> {
 
-  {MapKeyDef}                    { yypushback(yylength()); yybegin(HCLMAPKEY); }
-  ,                { /* should probably process this but due to simplicity we dont need to */ }
-  \}                 { exitAttribute(true); }
-    {WhiteSpace}                   { /* ignore */ }
-}
-
-
-<HCLMAPKEYDEF> {
-{MapKey}                           { yybegin(HCLMAPKEY); yypushback(yylength()); }
-":"                                { startAttribute(currentMapKey); currentMapKey = null ; yybegin(HCLATTRIBUTEVALUE); }
-{Comment}                      { /* ignore */ }
-{WhiteSpace}                       { /* ignore */ }
-}
-
-<HCLMAPKEY> {
-  \"                             {yybegin(STRINGDOUBLE); string.setLength(0); fromMapKey = true; }
-  {HCLAttributeName}             { currentMapKey = yytext() ; yybegin(HCLMAPKEYDEF);}
-  {WhiteSpace}                   { /* ignore */ }
-}
 
 <HCLARRAY> {
     [^,\]\r\n\ \t]                 { yypushback(yylength()); yybegin(HCLATTRIBUTEVALUE); }
@@ -540,7 +514,7 @@ AssignmentExpression = [^]
 <HCLATTRIBUTEVALUE> {
   {ForExpr}               { yybegin(FORLOOPEXPRESSION); yypushback(yylength()); }
   \[                      { startArray();/* process an array */ }
-  {MapBlockStart}         { startMap(); yypushback(yylength()-1) ; yybegin(HCLMAP);}
+
   \{                      {  blockNames = new ArrayList<String>(); blockNames.add(currentBlock.getName()); curleyBraceCounter++ ; hclBlock(blockNames) ; blockNames = null ; attribute = null ; yybegin(HCLINBLOCK); }
   \"                      {if(currentBlock instanceof StringInterpolatedExpression) {startNestedStringExpression();} yybegin(STRINGDOUBLE); string.setLength(0); }
   {MLineModifierStart}    {yybegin(MULTILINESTRING) ; isMultiLineFirstNewLine = true ;isMultilineModified = true; string.setLength(0) ; endOfMultiLineSymbol = yytext().substring(3);}
@@ -620,7 +594,7 @@ AssignmentExpression = [^]
 }
 
 <FORTUPLEEXPRESSION> {
-  :                 { yybegin(HCLATTRIBUTEVALUE);  }
+  :                 { ((ComputedTuple)currentBlock).appendChild(new ForSource(yyline,yycolumn,yychar)) ; yybegin(HCLATTRIBUTEVALUE);  }
   [\]]              { exitAttribute(true);  }
   {IfPrimitive}                { startForConditional(); }
   {Conditional}                  { yybegin(HCLATTRIBUTEVALUE);  yypushback(yylength()); }

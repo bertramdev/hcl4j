@@ -703,6 +703,9 @@ public class HCLParser {
 	}
 
 	private Object processSymbol(Symbol symbol, Map<String,Object> mapPosition) throws HCLParserException {
+		return processSymbol(symbol,mapPosition,null);
+	}
+	private Object processSymbol(Symbol symbol, Map<String,Object> mapPosition, Map<String,Object> stackVars) throws HCLParserException {
 
 		if(symbol instanceof HCLBlock) {
 			HCLBlock block = (HCLBlock)symbol;
@@ -736,7 +739,7 @@ public class HCLParser {
 			}
 			if(symbol.getChildren() != null) {
 				for(Symbol child : block.getChildren()) {
-					processSymbol(child,mapPosition);
+					processSymbol(child,mapPosition,stackVars);
 				}
 			}
 			return mapPosition;
@@ -765,8 +768,8 @@ public class HCLParser {
 		} else if(symbol instanceof PrimitiveType) {
 			return symbol;
 		} else if(symbol instanceof EvalSymbol) {
-			return processEvaluation((EvalSymbol) symbol,null);
-		} else if(symbol instanceof HCLAttribute || symbol instanceof GroupedExpression) {
+			return processEvaluation((EvalSymbol) symbol,null,stackVars);
+		} else if(symbol instanceof HCLAttribute || symbol instanceof GroupedExpression || symbol instanceof StringInterpolatedExpression) {
 			Map<String,Object> nestedMap = new LinkedHashMap<>();
 			if(symbol.getChildren().size() > 0) {
 				Object results = null;
@@ -776,14 +779,14 @@ public class HCLParser {
 						switch(child.getName()) {
 							case "+":
 								if(results instanceof String) {
-									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
 									if(rightResult != null) {
 										results = (String)results + rightResult.toString();
 									} else {
 										//TODO: Exception?
 									}
 								} else if(results instanceof Double) {
-									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
 									if(rightResult != null && rightResult instanceof Double) {
 										results = (Double)results + (Double)rightResult;
 									} else {
@@ -794,7 +797,7 @@ public class HCLParser {
 								break;
 							case "-":
 								if(results instanceof Double) {
-									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
 									if(rightResult != null && rightResult instanceof Double) {
 										results = (Double)results - (Double)rightResult;
 									} else {
@@ -804,7 +807,7 @@ public class HCLParser {
 								break;
 							case "/":
 								if(results instanceof Double) {
-									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
 									if(rightResult != null && rightResult instanceof Double) {
 										results = (Double)results / (Double)rightResult;
 									} else {
@@ -814,7 +817,7 @@ public class HCLParser {
 								break;
 							case "*":
 								if(results instanceof Double) {
-									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap);
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
 									if(rightResult != null && rightResult instanceof Double) {
 										results = (Double)results * (Double)rightResult;
 									} else {
@@ -822,13 +825,83 @@ public class HCLParser {
 									}
 								}
 								break;
+							case "?":
+								//if left side of result is false we need to skip between the ? and the :
+								if(results instanceof Boolean && !((Boolean) results) || results == null ) {
+									//skip children until ":" operator
+									Symbol nextElement = symbol.getChildren().get(++x);
+									while(!(nextElement instanceof Operator) && nextElement.getName() != ":") {
+										nextElement = symbol.getChildren().get(++x);
+									}
+								}
+								break;
+							case ":":
+								//if we got to a colon operator then we need to skip everything after it as its processed with the ? operator above
+								x = symbol.getChildren().size();
+								break;
+							case "!=":
+								Object compareResult2 = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
+								if(compareResult2 != results && (compareResult2 == null || !compareResult2.equals(results))) {
+									results = true;
+								} else {
+									results = false;
+								}
+								break;
+							case "==":
+								Object compareResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
+								if(compareResult == results || (compareResult != null && compareResult.equals(results))) {
+									results = true;
+								} else {
+									results = false;
+								}
+								break;
+							case ">":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results > (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case ">=":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results >= (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "<":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results < (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
+							case "<=":
+								if(results instanceof Double) {
+									Object rightResult = processSymbol(symbol.getChildren().get(++x),nestedMap,stackVars);
+									if(rightResult != null && rightResult instanceof Double) {
+										results = ((Double)results <= (Double)rightResult);
+									} else {
+										//TODO: Exception?
+									}
+								}
+								break;
 						}
 					} else {
-						results = processSymbol(symbol.getChildren().get(0),nestedMap);
+						results = processSymbol(symbol.getChildren().get(0),nestedMap,stackVars);
 					}
 				}
 
-				if(symbol instanceof GroupedExpression) {
+				if(symbol instanceof GroupedExpression || symbol instanceof StringInterpolatedExpression) {
 					return results;
 				} else {
 					mapPosition.put(symbol.getName(),results);
@@ -894,6 +967,80 @@ public class HCLParser {
 		}
 	}
 
+
+	protected Object evaluateComputedTuple(ComputedTuple thisTuple) throws HCLParserException {
+//		System.out.println("Evaluating Tuple");
+		ArrayList computedResult = new ArrayList();
+		Variable indexVariable = null;
+		Variable valueVariable = null;
+		if(thisTuple.getVariables().size() == 2) {
+			//variables with index
+
+			indexVariable = thisTuple.getVariables().get(0);
+			valueVariable = thisTuple.getVariables().get(1);
+		} else if(thisTuple.getVariables().size() == 1) {
+			valueVariable = thisTuple.getVariables().get(0);
+		} else {
+			log.warn("Computed Tuple loop found with too many variables at line {}",thisTuple.getLine());
+			return null;
+		}
+		ForConditional tupleConditional = null;
+		for(Symbol child : thisTuple.getChildren()) {
+			if(child instanceof ForConditional) {
+				tupleConditional = (ForConditional) child;
+				thisTuple.getChildren().remove(child);
+				break;
+			}
+		}
+		Object elementResult = null;
+		Boolean forSourceFound=false;
+		GroupedExpression sourceExpression = new GroupedExpression(0,0,0);
+		GroupedExpression iteratorExpression = new GroupedExpression(0,0,0);
+		for(Symbol child : thisTuple.getChildren()) {
+			if(child instanceof ForSource) {
+				forSourceFound = true;
+				continue;
+			}
+			if(forSourceFound) {
+				iteratorExpression.appendChild(child);
+			} else {
+				sourceExpression.appendChild(child);
+			}
+
+		}
+		if(sourceExpression.getChildren().size() > 0 && iteratorExpression.getChildren().size() > 0) {
+			elementResult = processSymbol(sourceExpression,result);
+			if(elementResult instanceof List) {
+				List elementResultList = (List)elementResult;
+				System.out.println("Iterating over list");
+				for(int counter=0;counter < elementResultList.size();counter++){
+					Map<String,Object> stackVars = new LinkedHashMap<>();
+					if(indexVariable != null) {
+						stackVars.put(indexVariable.getName(),counter);
+					}
+					stackVars.put(valueVariable.getName(),elementResultList.get(counter));
+					if(tupleConditional != null) {
+						System.out.println("Conditional Tuple Found");
+						Object conditionalResult = processSymbol(tupleConditional ,null,stackVars);
+						System.out.println("Conditional Result: " + conditionalResult);
+						if(conditionalResult == null || ((conditionalResult instanceof Boolean) && (Boolean) conditionalResult == false)) {
+							System.out.println("Does not match");
+							continue;
+						} else {
+							System.out.println("Matches");
+						}
+					}
+					computedResult.add(processSymbol(iteratorExpression,null,stackVars));
+					System.out.println("Computed Result: " + computedResult);
+				}
+			} else {
+				log.error("Error Processing Tuple from source not a List");
+				return computedResult;
+			}
+		}
+		return computedResult;
+	}
+
 	protected Map<String,Object> evaluateDataLookup(String lookupName,String name,Map<String,Object> properties) throws HCLParserException {
 		if(dataLookupRegistry.get(lookupName) != null) {
 			try {
@@ -917,8 +1064,14 @@ public class HCLParser {
 			//TODO: DO we throw a method missing exception at some point
 			return null;
 		}
+
+
 	}
+
 	protected Object processEvaluation(EvalSymbol evalSymbol, Object context) throws HCLParserException{
+		return processEvaluation(evalSymbol,context,null);
+	}
+	protected Object processEvaluation(EvalSymbol evalSymbol, Object context,Map<String,Object> stackVars) throws HCLParserException{
 		Boolean variableLookup  = false;
 		Boolean dataLookup = false;
 		String dataLookupName = null;
@@ -945,7 +1098,14 @@ public class HCLParser {
 								context = dataLookups;
 								break;
 							default:
-								context = result.get(child.getName());
+								if(stackVars != null) {
+									context = stackVars.get(child.getName());
+									if(context == null) {
+										context = result.get(child.getName());
+									}
+								} else {
+									context = result.get(child.getName());
+								}
 						}
 
 					} else if(context != null){
@@ -1054,8 +1214,24 @@ public class HCLParser {
 			} else {
 				return null;
 			}
+		} else if(evalSymbol instanceof ComputedTuple) {
+			//time to actually implemented a tuple loop
+			ComputedTuple thisTuple = (ComputedTuple) evalSymbol;
+			return evaluateComputedTuple(thisTuple);
 		}
-		else if(evalSymbol instanceof Variable || evalSymbol instanceof ComputedTuple || evalSymbol instanceof ComputedObject) {
+		else if(evalSymbol instanceof Variable) {
+			System.out.println("Evaluating Variable: " + evalSymbol.getName());
+			if(stackVars != null) {
+				context = stackVars.get(evalSymbol.getName());
+				if(context == null) {
+					context = result.get(evalSymbol.getName());
+				}
+			} else {
+				context = result.get(evalSymbol.getName());
+			}
+			return context;
+		}
+		else if(evalSymbol instanceof ComputedObject) {
 			return evalSymbol;
 		} else {
 			return null;
