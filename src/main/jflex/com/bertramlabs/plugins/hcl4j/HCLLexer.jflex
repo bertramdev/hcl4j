@@ -435,7 +435,7 @@ AssignmentExpression = [^]
   \\t                            { string.append('\t'); }
   \\n                            { string.append('\n'); }
   \\r                            { string.append('\r'); }
-  \\                             { string.append('\\'); }
+  \\\\                             { string.append('\\'); }
 }
 <STRINGDOUBLE> {
 

@@ -1212,14 +1212,15 @@ swagger_path_method_parameters = [for my_value in local.swagger_path_methods_spl
 		given:
 		def hcl = '''
 locals {
-	swagger_path_methods_split = [["a","b"],["c","d"]]
+	swagger_path_methods_split = [[0,"a"],[0,"b"]]
 	json_data = {
-		paths = {a: {b: [1,2]}, c:{d: [3,4]]}}
+		paths = [{a: "test"},{b:"test2"}]
 	}
 swagger_path_method_parameters = [for my_value in local.swagger_path_methods_split: 
       [for val2 in local.json_data.paths[my_value[0]][my_value[1]] : val2]
     ]
 }
+
 '''
 		HCLParser parser = new HCLParser();
 		when:

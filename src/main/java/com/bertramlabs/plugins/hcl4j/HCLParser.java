@@ -945,15 +945,18 @@ public class HCLParser {
 	}
 
 	protected Object evaluateFunctionCall(String functionName,Function functionSymbol) throws HCLParserException {
+		return evaluateFunctionCall(functionName,functionSymbol,null);
+	}
+	protected Object evaluateFunctionCall(String functionName,Function functionSymbol, Map<String,Object> localVars) throws HCLParserException {
 		if(functionRegistry.get(functionName) != null) {
 			HCLFunction functionMethod = functionRegistry.get(functionName);
 			ArrayList<Object> functionArguments = new ArrayList<>();
 			for(Symbol child : functionSymbol.getChildren()) {
 				Object elementResult = null;
 				if(child instanceof EvalSymbol) {
-					elementResult = processEvaluation((EvalSymbol) child,null);
+					elementResult = processEvaluation((EvalSymbol) child,null,localVars);
 				} else if(child instanceof  Symbol) {
-					elementResult = processSymbol(child,result);
+					elementResult = processSymbol(child,result,localVars);
 				}
 				if(elementResult instanceof VariableTree) { //we were unable to evaluate a sub argument... abort function evaluation
 					return null; // function evaluation aborted. perhaps throw error for later based on if ignoreExceptions is on or not
@@ -969,7 +972,10 @@ public class HCLParser {
 
 
 	protected Object evaluateComputedTuple(ComputedTuple thisTuple) throws HCLParserException {
-//		System.out.println("Evaluating Tuple");
+		return evaluateComputedTuple(thisTuple,null);
+	}
+	protected Object evaluateComputedTuple(ComputedTuple thisTuple, Map<String,Object> localVars) throws HCLParserException {
+
 		ArrayList computedResult = new ArrayList();
 		Variable indexVariable = null;
 		Variable valueVariable = null;
@@ -984,6 +990,7 @@ public class HCLParser {
 			log.warn("Computed Tuple loop found with too many variables at line {}",thisTuple.getLine());
 			return null;
 		}
+		System.out.println("Evaluating Tuple: " + valueVariable.getName());
 		ForConditional tupleConditional = null;
 		for(Symbol child : thisTuple.getChildren()) {
 			if(child instanceof ForConditional) {
@@ -1009,12 +1016,16 @@ public class HCLParser {
 
 		}
 		if(sourceExpression.getChildren().size() > 0 && iteratorExpression.getChildren().size() > 0) {
-			elementResult = processSymbol(sourceExpression,result);
+			elementResult = processSymbol(sourceExpression,result,localVars);
 			if(elementResult instanceof List) {
 				List elementResultList = (List)elementResult;
 				System.out.println("Iterating over list");
 				for(int counter=0;counter < elementResultList.size();counter++){
+
 					Map<String,Object> stackVars = new LinkedHashMap<>();
+					if(localVars != null) {
+						stackVars = new LinkedHashMap<>(localVars);
+					}
 					if(indexVariable != null) {
 						stackVars.put(indexVariable.getName(),counter);
 					}
@@ -1210,14 +1221,14 @@ public class HCLParser {
 		else if(evalSymbol instanceof Function) {
 			Function thisFunction = (Function)evalSymbol;
 			if(thisFunction.getName() != null && thisFunction.getName().length() > 0) {
-				return evaluateFunctionCall(thisFunction.getName(),thisFunction);
+				return evaluateFunctionCall(thisFunction.getName(),thisFunction,stackVars);
 			} else {
 				return null;
 			}
 		} else if(evalSymbol instanceof ComputedTuple) {
 			//time to actually implemented a tuple loop
 			ComputedTuple thisTuple = (ComputedTuple) evalSymbol;
-			return evaluateComputedTuple(thisTuple);
+			return evaluateComputedTuple(thisTuple,stackVars);
 		}
 		else if(evalSymbol instanceof Variable) {
 			System.out.println("Evaluating Variable: " + evalSymbol.getName());
