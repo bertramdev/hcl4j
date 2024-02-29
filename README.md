@@ -16,12 +16,13 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.8.0"
+	compile "com.bertramlabs.plugins:hcl4j:0.9.0"
 }
 ```
 
 ## What's New
 
+* **0.9.0** HCL Tuple for loop nested improvements. String escapes fixed. anytrue and alltrue methods added.
 * **0.8.0** HCL For Loop Tuples now evaluated.
 * **0.7.7** HCL Periods in attribute names referenced from Unicodes ID_Continue, fixed.
 * **0.7.6** SLF4j 1.7.36 upgrade to reduce CVE's

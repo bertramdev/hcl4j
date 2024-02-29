@@ -339,6 +339,62 @@ public class HCLBaseFunctions {
             return null;
         });
 
+        parser.registerFunction("alltrue", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    if(elements.size() > 0) {
+                        Boolean allTrue = true;
+                        for(Object element : elements) {
+                            if(element instanceof Boolean) {
+                                if(!(Boolean)element) {
+                                    allTrue = false;
+                                    break;
+                                }
+                            } else if(element instanceof String) {
+                                if(!element.equals("true")) {
+                                    allTrue = false;
+                                    break;
+                                }
+                            } else {
+                                allTrue = false;
+                                break;
+                            }
+                        }
+                        return allTrue;
+                    } else {
+                        return true;
+                    }
+                } else {
+                    return true;
+                }
+            }
+            return true;
+        });
+
+
+        parser.registerFunction("anytrue", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    if(elements.size() > 0) {
+                        for(Object element : elements) {
+                            if(element instanceof Boolean) {
+                                if((Boolean)element) {
+                                    return true;
+                                }
+                            } else if(element instanceof String) {
+                                if(element.equals("true")) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        });
+
         parser.registerFunction("lookup", (arguments) -> {
             if(arguments.size() > 0) {
                 if(arguments.get(0) instanceof Map) {

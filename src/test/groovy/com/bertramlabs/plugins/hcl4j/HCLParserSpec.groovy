@@ -1184,8 +1184,24 @@ swagger_path_method_parameters = [for i,my_value in [0,1,2,3]: "${i}:${my_value 
 		then:
 		results.locals["swagger_path_method_parameters"] == ["0:1.0","1:2.0","2:3.0","3:4.0"]
 	}
-
 	void "it should handle nested for tuples"() {
+		given:
+		def hcl = '''
+locals {
+	my_array = [for my_value in [1,2,3,4]:
+		[for sub_value in ["a","b","c","d"]: "${sub_value}${my_value}"]]
+	
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["my_array"] != null
+	}
+
+	void "it should handle nested complex for tuples"() {
 		given:
 		def hcl = '''
 locals {
