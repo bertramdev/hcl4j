@@ -468,7 +468,6 @@ public class HCLParser {
 					processSymbolPass2(child, nestedMap);
 				}
 			}
-			log.info("Nested Map: {}",nestedMap);
 			return nestedMap;
 		} else if(val instanceof HCLArray) {
 			 HCLArray symbol = (HCLArray)(val);
