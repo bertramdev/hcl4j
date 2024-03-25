@@ -308,68 +308,66 @@ public class HCLParser {
 	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
 	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
 	 */
-    public Map<String, Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
-        HCLLexer lexer = new HCLLexer(reader);
-        ArrayList<Symbol> rootBlocks;
-        dataLookups = new LinkedHashMap<>();
+	public Map<String, Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
+		HCLLexer lexer = new HCLLexer(reader);
+		ArrayList<Symbol> rootBlocks;
+		dataLookups = new LinkedHashMap<>();
+		try {
+			lexer.yylex();
+			rootBlocks = lexer.elementStack;
+			
+			result = new LinkedHashMap<>();
+			Map<String, Object> mapPosition = result;
 
-        try {
-            lexer.yylex();
-            rootBlocks = lexer.elementStack;
+			for (Symbol currentElement : rootBlocks) {
+				intermediateHclParserExceptionHandling(() -> processSymbolPass1(currentElement, mapPosition), ignoreParserExceptions);
+			}
 
+			//pass2
+			if (result.get("locals") != null) {
+				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("locals"), result), ignoreParserExceptions);
+			}
+			if (result.get("variable") != null) {
+				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("variable"), result), ignoreParserExceptions);
+			}
+			if (result.get("data") != null) {
 
-            result = new LinkedHashMap<>();
-            Map<String, Object> mapPosition = result;
+				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("data"), result), ignoreParserExceptions);
 
-            for (Symbol currentElement : rootBlocks) {
-                intermediateHclParserExceptionHandling(() -> processSymbolPass1(currentElement, mapPosition), ignoreParserExceptions);
-            }
-
-            //pass2
-            if (result.get("locals") != null) {
-                intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("locals"), result), ignoreParserExceptions);
-            }
-            if (result.get("variable") != null) {
-                intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("variable"), result), ignoreParserExceptions);
-            }
-            if (result.get("data") != null) {
-
-                intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("data"), result), ignoreParserExceptions);
-
-            }
-            for (String key : result.keySet()) {
-                intermediateHclParserExceptionHandling(() -> {
-                    if (!Objects.equals(key, "variable") && !Objects.equals(key, "data") && !Objects.equals(key, "locals")) {
-                        processSymbolPass2(result.get(key), result);
-                    }
-                }, ignoreParserExceptions);
-            }
-        } catch (Exception ex) {
-            log.error("Error Parsing HCL...{}", ex.getMessage(), ex);
-            if (ignoreParserExceptions != true) { //its nullable so thats why we look at inverse
-                throw new RuntimeException(ex);
-            }
-        }
-        return result;
-    }
+			}
+			for (String key : result.keySet()) {
+				intermediateHclParserExceptionHandling(() -> {
+					if (!Objects.equals(key, "variable") && !Objects.equals(key, "data") && !Objects.equals(key, "locals")) {
+						processSymbolPass2(result.get(key), result);
+					}
+				}, ignoreParserExceptions);
+			}
+		} catch (Exception ex) {
+			log.error("Error Parsing HCL...{}", ex.getMessage(), ex);
+			if (ignoreParserExceptions != true) { //its nullable so thats why we look at inverse
+				throw new RuntimeException(ex);
+			}
+		}
+		return result;
+	}
 
 
 
 	@FunctionalInterface
-    interface ExceptionThrowingRunnable {
-        void run() throws Exception;
-    }
+	interface ExceptionThrowingRunnable {
+		void run() throws Exception;
+	}
 
 	void intermediateHclParserExceptionHandling(ExceptionThrowingRunnable runnable, Boolean ignore) throws Exception {
-        try {
-            runnable.run();
-        } catch (Exception ex) {
-            log.error("Error Parsing HCL...{}", ex.getMessage(), ex);
-            if (ignore != true) { //its nullable so thats why we look at inverse
-                throw ex;
-            }
-        }
-    }
+		try {
+			runnable.run();
+		} catch (Exception ex) {
+			log.error("Error Parsing HCL...{}", ex.getMessage(), ex);
+			if (ignore != true) { //its nullable so thats why we look at inverse
+				throw ex;
+			}
+		}
+	}
 
 
 	private Object processSymbolPass1(Symbol symbol, Map<String,Object> mapPosition) throws HCLParserException {
