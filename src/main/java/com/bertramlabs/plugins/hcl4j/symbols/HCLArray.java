@@ -22,7 +22,7 @@ public class HCLArray extends GenericSymbol {
 		return "Array";
 	}
 
-	public HCLArray(Integer line, Integer column,Integer position) {
+	public HCLArray(Integer line, Integer column, Long position) {
 		super("array",line,column,position);
 	}
 }

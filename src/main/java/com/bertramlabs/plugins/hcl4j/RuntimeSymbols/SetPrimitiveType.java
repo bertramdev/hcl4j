@@ -2,7 +2,7 @@ package com.bertramlabs.plugins.hcl4j.RuntimeSymbols;
 
 public class SetPrimitiveType extends SubTypePrimitiveType {
 
-	public SetPrimitiveType(PrimitiveType subType, Integer line, Integer column,Integer position) {
+	public SetPrimitiveType(PrimitiveType subType, Integer line, Integer column, Long position) {
 		super(subType,"set",line,column,position);
 	}
 

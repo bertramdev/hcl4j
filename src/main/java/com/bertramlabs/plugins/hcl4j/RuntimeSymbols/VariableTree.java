@@ -7,7 +7,7 @@ import com.bertramlabs.plugins.hcl4j.symbols.Symbol;
 import java.util.ArrayList;
 
 public class VariableTree extends Variable {
-    public VariableTree(Integer line, Integer column,Integer position) {
+    public VariableTree(Integer line, Integer column, Long position) {
         super(null,line,column,position);
     }
 
