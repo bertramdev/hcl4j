@@ -21,7 +21,7 @@ import java.util.Map;
 public class HCLMap extends GenericSymbol {
 
 
-	public HCLMap(Integer line, Integer column,Integer position) {
+	public HCLMap(Integer line, Integer column, Long position) {
 		super("array",line,column,position);
 	}
 

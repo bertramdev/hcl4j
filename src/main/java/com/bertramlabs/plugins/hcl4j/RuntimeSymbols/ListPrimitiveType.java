@@ -2,7 +2,7 @@ package com.bertramlabs.plugins.hcl4j.RuntimeSymbols;
 
 public class ListPrimitiveType extends SubTypePrimitiveType {
 
-	public ListPrimitiveType(PrimitiveType subType, Integer line, Integer column,Integer position) {
+	public ListPrimitiveType(PrimitiveType subType, Integer line, Integer column, Long position) {
 		super(subType,"list",line,column,position);
 	}
 

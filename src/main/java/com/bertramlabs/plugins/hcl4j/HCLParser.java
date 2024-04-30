@@ -1021,8 +1021,8 @@ public class HCLParser {
 		}
 		Object elementResult = null;
 		Boolean forSourceFound=false;
-		GroupedExpression sourceExpression = new GroupedExpression(0,0,0);
-		GroupedExpression iteratorExpression = new GroupedExpression(0,0,0);
+		GroupedExpression sourceExpression = new GroupedExpression(0,0,0L);
+		GroupedExpression iteratorExpression = new GroupedExpression(0,0,0L);
 		for(Symbol child : thisTuple.getChildren()) {
 			if(child instanceof ForSource) {
 				forSourceFound = true;

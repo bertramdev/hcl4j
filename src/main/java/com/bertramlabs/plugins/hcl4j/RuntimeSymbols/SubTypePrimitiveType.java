@@ -9,7 +9,7 @@ public class SubTypePrimitiveType extends PrimitiveType {
 	 */
 	protected PrimitiveType subType;
 	
-	public SubTypePrimitiveType(PrimitiveType subType,String name, Integer line, Integer column,Integer position) {
+	public SubTypePrimitiveType(PrimitiveType subType,String name, Integer line, Integer column, Long position) {
 		super(name,line,column,position);
 		this.subType = subType;
 	}

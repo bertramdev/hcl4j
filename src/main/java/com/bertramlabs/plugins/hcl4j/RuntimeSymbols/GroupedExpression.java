@@ -3,7 +3,7 @@ package com.bertramlabs.plugins.hcl4j.RuntimeSymbols;
 import com.bertramlabs.plugins.hcl4j.symbols.GenericSymbol;
 
 public class GroupedExpression extends GenericSymbol {
-    public GroupedExpression(Integer line, Integer column,Integer position) {
+    public GroupedExpression(Integer line, Integer column, Long position) {
         super(null,line,column,position);
     }
 
