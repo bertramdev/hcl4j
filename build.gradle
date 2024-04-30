@@ -145,7 +145,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     from 'build/docs/javadoc'
 }
 
-task sourcesJar(type: Jar) {
+task sourcesJar(type: Jar, dependsOn: jflex) {
     archiveClassifier = 'sources'
     from sourceSets.main.allSource
 }
