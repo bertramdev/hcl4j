@@ -30,7 +30,7 @@ public class HCLValue extends GenericSymbol {
 	}
 
 
-	public HCLValue(String type, Object value, Integer line, Integer column,Integer position) {
+	public HCLValue(String type, Object value, Integer line, Integer column, Long position) {
 		super("value",line,column,position);
 		this.type = type;
 		this.value = value;

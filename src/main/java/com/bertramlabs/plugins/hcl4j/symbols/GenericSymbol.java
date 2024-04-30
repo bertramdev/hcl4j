@@ -23,7 +23,7 @@ import java.util.ArrayList;
 public abstract class GenericSymbol implements Symbol {
 	private Integer line;
 	private Integer column;
-	private Integer position;
+	private Long position;
 	private Integer length;
 
 	private String name;
@@ -58,7 +58,7 @@ public abstract class GenericSymbol implements Symbol {
 		return column;
 	}
 
-	public Integer getPosition() {
+	public Long getPosition() {
 		return position;
 	}
 
@@ -90,7 +90,7 @@ public abstract class GenericSymbol implements Symbol {
 		this.name = name;
 	}
 
-	public GenericSymbol(String name,Integer line, Integer column,Integer position) {
+	public GenericSymbol(String name,Integer line, Integer column, Long position) {
 		this.name = name;
 		this.line = line;
 		this.column = column;

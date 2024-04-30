@@ -3,7 +3,7 @@ package com.bertramlabs.plugins.hcl4j.RuntimeSymbols;
 import java.util.ArrayList;
 
 public class ComputedObject extends EvalSymbol {
-    public ComputedObject(String name, Integer line, Integer column, Integer position) {
+    public ComputedObject(String name, Integer line, Integer column, Long position) {
         super(name,line,column,position);
         this.variables = new ArrayList<>();
     }

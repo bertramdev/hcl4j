@@ -8,7 +8,7 @@ public class EvalSymbol extends GenericSymbol {
 		return "EvaluationSymbol";
 	}
 
-	public EvalSymbol(String name, Integer line, Integer column,Integer position) {
+	public EvalSymbol(String name, Integer line, Integer column, Long position) {
 		super(name,line,column,position);
 	}
 }

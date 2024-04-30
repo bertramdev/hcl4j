@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class ComputedTuple extends EvalSymbol {
 
-    public ComputedTuple(String name, Integer line, Integer column, Integer position) {
+    public ComputedTuple(String name, Integer line, Integer column, Long position) {
         super(name,line,column,position);
         this.variables = new ArrayList<>();
     }

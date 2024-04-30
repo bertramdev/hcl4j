@@ -22,7 +22,7 @@ public interface Symbol {
 
 	Integer getLine();
 	Integer getColumn();
-	Integer getPosition();
+	Long getPosition();
 	Integer getLength();
 	void setLength(Integer length);
 

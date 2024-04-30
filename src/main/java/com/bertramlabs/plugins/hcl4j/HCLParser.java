@@ -308,44 +308,65 @@ public class HCLParser {
 	 * @throws HCLParserException Any type of parsing errors are returned as this exception if the syntax is invalid.
 	 * @throws IOException In the event the reader is unable to pull from the input source this exception is thrown.
 	 */
-	public Map<String,Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
+	public Map<String, Object> parse(Reader reader, Boolean ignoreParserExceptions) throws HCLParserException, IOException {
 		HCLLexer lexer = new HCLLexer(reader);
 		ArrayList<Symbol> rootBlocks;
 		dataLookups = new LinkedHashMap<>();
 		try {
-			lexer.yylex();	
+			lexer.yylex();
 			rootBlocks = lexer.elementStack;
-
-
+			
 			result = new LinkedHashMap<>();
-			Map<String,Object> mapPosition = result;
+			Map<String, Object> mapPosition = result;
 
-			for(Symbol currentElement : rootBlocks) {
-				processSymbolPass1(currentElement,mapPosition);
+			for (Symbol currentElement : rootBlocks) {
+				intermediateHclParserExceptionHandling(() -> processSymbolPass1(currentElement, mapPosition), ignoreParserExceptions);
 			}
 
 			//pass2
-			if(result.get("locals") != null) {
-				processSymbolPass2(result.get("locals"),result);
+			if (result.get("locals") != null) {
+				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("locals"), result), ignoreParserExceptions);
 			}
-			if(result.get("variable") != null) {
-				processSymbolPass2(result.get("variable"),result);
+			if (result.get("variable") != null) {
+				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("variable"), result), ignoreParserExceptions);
 			}
-			if(result.get("data") != null) {
-				processSymbolPass2(result.get("data"),result);
+			if (result.get("data") != null) {
+
+				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("data"), result), ignoreParserExceptions);
+
 			}
-			for(String key : result.keySet()) {
-				if(!Objects.equals(key, "variable") && !Objects.equals(key, "data") && !Objects.equals(key, "locals")) {
-					processSymbolPass2(result.get(key),result);
-				}
+			for (String key : result.keySet()) {
+				intermediateHclParserExceptionHandling(() -> {
+					if (!Objects.equals(key, "variable") && !Objects.equals(key, "data") && !Objects.equals(key, "locals")) {
+						processSymbolPass2(result.get(key), result);
+					}
+				}, ignoreParserExceptions);
 			}
-		} catch(Exception ex) {
-			log.error("Error Parsing HCL...{}",ex.getMessage(),ex);
-			if(ignoreParserExceptions != true) { //its nullable so thats why we look at inverse
+		} catch (Exception ex) {
+			log.error("Error Parsing HCL...{}", ex.getMessage(), ex);
+			if (ignoreParserExceptions != true) { //its nullable so thats why we look at inverse
 				throw new RuntimeException(ex);
 			}
 		}
 		return result;
+	}
+
+
+
+	@FunctionalInterface
+	interface ExceptionThrowingRunnable {
+		void run() throws Exception;
+	}
+
+	void intermediateHclParserExceptionHandling(ExceptionThrowingRunnable runnable, Boolean ignore) throws Exception {
+		try {
+			runnable.run();
+		} catch (Exception ex) {
+			log.error("Error Parsing HCL...{}", ex.getMessage(), ex);
+			if (ignore != true) { //its nullable so thats why we look at inverse
+				throw ex;
+			}
+		}
 	}
 
 
@@ -1000,8 +1021,8 @@ public class HCLParser {
 		}
 		Object elementResult = null;
 		Boolean forSourceFound=false;
-		GroupedExpression sourceExpression = new GroupedExpression(0,0,0);
-		GroupedExpression iteratorExpression = new GroupedExpression(0,0,0);
+		GroupedExpression sourceExpression = new GroupedExpression(0,0,0L);
+		GroupedExpression iteratorExpression = new GroupedExpression(0,0,0L);
 		for(Symbol child : thisTuple.getChildren()) {
 			if(child instanceof ForSource) {
 				forSourceFound = true;
