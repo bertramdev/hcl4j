@@ -35,9 +35,12 @@ version = '0.9.2'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
+
 java {
     sourceCompatibility = JavaVersion.toVersion("8")
     targetCompatibility = JavaVersion.toVersion("8")
+    withSourcesJar()
+    withJavadocJar()
 }
 repositories {
     mavenLocal()
@@ -112,10 +115,7 @@ publishing {
                 }
             }
             from components.java
-            afterEvaluate {
-                artifact sourcesJar
-                artifact javadocJar
-            }
+            
         }
     }
 }
@@ -139,15 +139,15 @@ publishing {
 
 
 
-task javadocJar(type: Jar, dependsOn: javadoc) {
-    archiveClassifier = 'javadoc'
-    from 'build/docs/javadoc'
-}
+// task javadocJar(type: Jar, dependsOn: javadoc) {
+//     archiveClassifier = 'javadoc'
+//     from 'build/docs/javadoc'
+// }
 
-task sourcesJar(type: Jar, dependsOn: jflex) {
-    archiveClassifier = 'sources'
-    from sourceSets.main.allSource
-}
+// task sourcesJar(type: Jar, dependsOn: jflex) {
+//     archiveClassifier = 'sources'
+//     from sourceSets.main.allSource
+// }
 
 task morpheusJavaDoc(type: Javadoc) {
   source = sourceSets.main.allJava
@@ -167,8 +167,11 @@ test {
     }
 }
 
+sourcesJar.dependsOn('generateJflex')
 
 afterEvaluate {
+
+
     signing {
         required { isReleaseVersion && gradle.taskGraph.hasTask("publish") }
         sign publishing.publications.maven
