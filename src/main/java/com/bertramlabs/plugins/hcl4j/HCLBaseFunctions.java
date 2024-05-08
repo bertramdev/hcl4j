@@ -105,16 +105,21 @@ public class HCLBaseFunctions {
         parser.registerFunction("split", (arguments) -> {
             if(arguments.size() == 2) {
                     String separator = (String)(arguments.get(0));
-                    String value = (String)(arguments.get(1));
-                    ArrayList<String> elements = new ArrayList<>();
-                    if(value == null) {
+                    try {
+                        String value = (String)(arguments.get(1));
+                        ArrayList<String> elements = new ArrayList<>();
+                        if(value == null) {
+                            return null;
+                        }
+                        StringTokenizer tokenizer = new StringTokenizer(value,separator);
+                        while(tokenizer.hasMoreTokens()) {
+                            elements.add(tokenizer.nextToken());
+                        }
+                        return elements;
+                    } catch(ClassCastException ex) {
                         return null;
                     }
-                    StringTokenizer tokenizer = new StringTokenizer(value,separator);
-                    while(tokenizer.hasMoreTokens()) {
-                        elements.add(tokenizer.nextToken());
-                    }
-                    return elements;
+                    
             } else {
                 return null; //Invalid Function Spec
             }
