@@ -57,7 +57,7 @@ dependencies {
     api 'org.apache.httpcomponents:httpcore:4.4.16'
     api 'org.apache.httpcomponents:httpmime:4.5.14'
     api group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.4'
-    api 'commons-net:commons-net:3.10.0'
+    api 'commons-net:commons-net:3.11.0'
     testImplementation platform("org.spockframework:spock-bom:2.3-groovy-4.0")
     testImplementation "org.spockframework:spock-core"
     testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
