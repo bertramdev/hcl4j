@@ -204,6 +204,15 @@ public class HCLBaseFunctions {
             return java.util.UUID.randomUUID().toString();
         });
 
+        parser.registerFunction("try", (arguments) -> {
+            for(Object argument : arguments) {
+                if(argument != null) {
+                    return argument;
+                }
+            }
+            return null;
+        });
+
         registerNumericFunctions(parser);
         registerCollectionFunctions(parser);
         registerDateFunctions(parser);
@@ -417,6 +426,33 @@ public class HCLBaseFunctions {
             return null;
         });
 
+        parser.registerFunction("flatten", (arguments) -> {
+            if(arguments.size() > 0) {
+                if(arguments.get(0) instanceof List) {
+                    List<Object> elements = ((List<Object>)(arguments.get(0)));
+                    ArrayList<Object> flattened = new ArrayList<>();
+                    flattenList(flattened,elements);
+
+                    return flattened;
+                } else {
+                    return null;
+                }
+            }
+            return null;
+        });
+
+
+    }
+
+    private static void flattenList(ArrayList<Object> flattened, List<Object> elements) {
+        for(Object element : elements) {
+            if(element instanceof List) {
+                List<Object> subElements = ((List<Object>)(element));
+                flattenList(flattened,subElements);
+            } else {
+                flattened.add(element);
+            }
+        }
 
     }
 
