@@ -335,7 +335,7 @@ public class HCLParser {
 				intermediateHclParserExceptionHandling(() -> processSymbolPass2(result.get("data"), result), ignoreParserExceptions);
 
 			}
-			for (String key : result.keySet()) {
+			for (String key : result.keySet().toArray(new String[0])) {
 				intermediateHclParserExceptionHandling(() -> {
 					if (!Objects.equals(key, "variable") && !Objects.equals(key, "data") && !Objects.equals(key, "locals")) {
 						processSymbolPass2(result.get(key), result);
