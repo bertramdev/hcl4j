@@ -242,6 +242,28 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 		results.variable.test.list.size() == 4
 	}
 
+//	void "should handle references of resource by array" () {
+//
+//		given:
+//		def hcl = '''
+//resource "something" "here" {
+//    count = 1
+//    name  = "bobby"
+//  }
+//
+//resource "something" "there" {
+//	count = 1
+//	name  = resource.something.here[0].name
+//}
+//'''
+//		HCLParser parser = new HCLParser();
+//		when:
+//		def results  = parser.parse(hcl)
+//
+//		then:
+//		results.resource.something.there.name == "bobby"
+//}
+
 
 	void "should handle multiple locals{} blocks for context"() {
 		given:
@@ -861,6 +883,21 @@ test3 = substr("hello world", 6, 10)
 		results.test1 == "ello"
 		results.test2 == "world"
 		results.test3 == "world"
+	}
+
+	void "regexall should function correctly"() {
+		given:
+		def hcl = '''
+test1 = regexall("[a-z]+", "1234abcd5678efgh9")
+test2 = regexall("[a-z]+", "123456789")
+
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.test1 == ["abcd","efgh"]
+		results.test2 == []
 	}
 
 

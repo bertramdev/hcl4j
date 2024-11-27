@@ -10,6 +10,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Provides implementations of the common Terraform Base HCL Functions that are commonly used.
@@ -77,6 +79,21 @@ public class HCLBaseFunctions {
                     reversed= ch + reversed; //adds each character in front of the existing string
                 }
                 return reversed;
+            }
+            return null;
+        });
+
+        parser.registerFunction("regexall", (arguments) -> {
+            if(arguments.size() > 1 && arguments.get(0) != null && arguments.get(1) != null) {
+                String str = arguments.get(1).toString();
+                Pattern regex = Pattern.compile(arguments.get(0).toString());
+                Matcher matcher = regex.matcher(str);
+                //convert match list to array of results
+                ArrayList<String> results = new ArrayList<>();
+                while(matcher.find()) {
+                    results.add(matcher.group());
+                }
+                return results;
             }
             return null;
         });
