@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.9.5** Adding support for regexall method
 * **0.9.4** Fixing concurrent modification exception on data lookup
 * **0.9.3** Added missing methods for array manipulation such as flatten and try
 * **0.9.1** Remove annoying Nested Map Debug Log
