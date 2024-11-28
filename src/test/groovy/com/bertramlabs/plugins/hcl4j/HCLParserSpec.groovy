@@ -890,6 +890,7 @@ test3 = substr("hello world", 6, 10)
 		def hcl = '''
 test1 = regexall("[a-z]+", "1234abcd5678efgh9")
 test2 = regexall("[a-z]+", "123456789")
+test3 = regexall("[a-z]+", null)
 
 '''
 		HCLParser parser = new HCLParser();
@@ -898,6 +899,7 @@ test2 = regexall("[a-z]+", "123456789")
 		then:
 		results.test1 == ["abcd","efgh"]
 		results.test2 == []
+		results.test3 == []
 	}
 
 

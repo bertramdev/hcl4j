@@ -84,8 +84,8 @@ public class HCLBaseFunctions {
         });
 
         parser.registerFunction("regexall", (arguments) -> {
-            if(arguments.size() > 1 && arguments.get(0) != null && arguments.get(1) != null) {
-                String str = arguments.get(1).toString();
+            if(arguments.size() > 1 && arguments.get(0) != null ) {
+                String str = arguments.get(1) != null ? arguments.get(1).toString() : "";
                 Pattern regex = Pattern.compile(arguments.get(0).toString());
                 Matcher matcher = regex.matcher(str);
                 //convert match list to array of results
