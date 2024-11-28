@@ -1110,9 +1110,15 @@ public class HCLParser {
 		if(evalSymbol instanceof VariableTree) {
 			for(int x = 0;x<evalSymbol.getChildren().size();x++) {
 				Symbol child = evalSymbol.getChildren().get(x);
+//				System.out.println("Processing Child: " + child.getName() + " child.class" + child.getClass().getName() + " line: " + child.getLine() + "col: " + child.getColumn());
 				if(child instanceof Variable && evalSymbol.getChildren().size() > x+1 && evalSymbol.getChildren().get(x+1) instanceof Function) {
 					//This may not be necessary anymore but is there to catch a function traversal potential error
-					return evaluateFunctionCall(child.getName(),(Function)(evalSymbol.getChildren().get(x+1)));
+					return evaluateFunctionCall(child.getName(), (Function) (evalSymbol.getChildren().get(x + 1)));
+				} else if(child instanceof Function) {
+					context = evaluateFunctionCall(child.getName(), (Function) child,stackVars);
+					if(context == null) { //function call failed
+						return null;
+					}
 				}else if(child instanceof Variable) {
 					if(context == null && x == 0) {
 						switch(child.getName()) {
