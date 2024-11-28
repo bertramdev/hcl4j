@@ -920,6 +920,7 @@ testConditional9 = worldVar == "world" || 3 < 2 ? "yes" : "no"
 testConditional10 = worldVar != "world" ? "yes" : "no"
 testConditional11 = !(worldVar == "world")
 testConditional12 = !boolVar
+testConditional13 = var.frontend_count == 2 ? [1]:[1]
 locals {
 	size = "${var.instance_size == "m4.xlarge" ? "m4.xlarge" : ( var.instance_size == "m4.large" ? "m4.large" : ( var.instance_size == "t2.medium" ? "t2.medium" : "t2.micro" )) }"
 }
@@ -945,6 +946,7 @@ locals {
 		results.testConditional10 == "no"
 		results.testConditional11 == false
 		results.testConditional12 == false
+		results.testConditional13[0] == 1
 		results.locals.size == "t2.micro"
 
 	}

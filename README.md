@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.9.7** Fixed issue with ?: conditional expression didnt have whitespace
 * **0.9.6** Function result accessor with . or []
 * **0.9.5** Adding support for regexall method
 * **0.9.4** Fixing concurrent modification exception on data lookup

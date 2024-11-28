@@ -313,18 +313,18 @@ CommentContent       = ( [^*] | \*+ [^/*] )*
 
 AnyChar = [^]
 
-
-Identifier = [:jletter:] [a-zA-Z0-9\-\_]*
+ID_Start = [a-zA-Z\$_]
+Identifier = {ID_Start} [a-zA-Z0-9\-\_]*
 VariableBracketAccessor = \[ [a-zA-Z\"\'0-9\.\_\-\[\]\(\)]+ \]
-IdentifierTree = [:jletter:] [a-zA-Z0-9\-\_\.]* | [:jletter] [a-zA-Z0-9\-\_\.]* {VariableBracketAccessor}+
+IdentifierTree = {ID_Start} [a-zA-Z0-9\-\_\.]* | {ID_Start} [a-zA-Z0-9\-\_\.]* {VariableBracketAccessor}+
 
 GetAttr = "." {Identifier}
-Function = [:jletter:] [a-zA-Z0-9\-\_]*\(
+Function = {ID_Start} [a-zA-Z0-9\-\_]*\(
 Arguments = ({Expression} ("," {Expression})* ("," | "...")?)
 FunctionCall = {Identifier} "("
 
-ArrayModifier = [:jletter:] [a-zA-Z0-9\-\_]*\[
-Property = [:jletter:] [a-zA-Z0-9\-\_]*\.
+ArrayModifier = {ID_Start} [a-zA-Z0-9\-\_]*\[
+Property = {ID_Start} [a-zA-Z0-9\-\_]*\.
 EvaluatedExpression = [\(] | {IdentifierTree} | {ArrayModifier} | {Function} | {Identifier}
 
 True = true
@@ -344,7 +344,7 @@ ForInExpression = in
 DigitValue = [0-9\.\-]+
 WholeNumber = [0-9]+
 
-HCLAttributeName = [:jletter:] [a-zA-Z0-9\-\_\.]*
+HCLAttributeName = {ID_Start} [a-zA-Z0-9\-\_\.]*
 HCLQuotedPropertyName = [\"] [^\r\n]+ [\"]
 
 HCLBlock = {HCLAttributeName} {HCLBlockAttribute}* "{" [^]* "}" | {HCLAttributeName} {WhiteSpaceOpt} "{" [^]* "}"
@@ -530,8 +530,8 @@ AssignmentExpression = [^]
   {ListPrimitive}         { subTypePrimitiveType = new ListPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {SetPrimitive}         { subTypePrimitiveType = new SetPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
   {MapPrimitive}         { subTypePrimitiveType = new MapPrimitiveType(null,yyline,yycolumn,yychar); if(yytext().endsWith("(")) { yypushback(1);} currentBlock.appendChild(subTypePrimitiveType); yybegin(SUBTYPEPRIMITIVETYPE); }
-  {Conditional}                  { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); System.out.println("Conditional Matched:" + yytext()); }
-  {Operation}                    { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); System.out.println("Operation Matched:" + yytext());}
+  {Conditional}                  { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar));  }
+  {Operation}                    { currentBlock.appendChild(new Operator(yytext(),yyline,yycolumn,yychar)); }
   {EvaluatedExpression}          { startEvalExpression(); }
   {Comment}                      { /* ignore */ }
   {LineTerminator}               { if(currentBlock instanceof HCLAttribute) {exitAttribute(true); }  }
@@ -546,8 +546,8 @@ AssignmentExpression = [^]
 
 <EVALUATEDEXPRESSION> {
 
-  {FunctionCall}             {startVariableTree(); }
-  {IdentifierTree}           { startVariableTree(); }
+  {FunctionCall}             { startVariableTree(); }
+  {IdentifierTree}           {startVariableTree(); }
   \}                             { yypushback(yylength()); exitAttribute(true);  }
   {LineTerminator}               { if(currentBlock instanceof HCLAttribute) {exitAttribute(true); }}
   {Comment}                      { /* ignore */ }
@@ -594,7 +594,7 @@ AssignmentExpression = [^]
 }
 
 <FORTUPLEEXPRESSION> {
-  :                 { ((ComputedTuple)currentBlock).appendChild(new ForSource(yyline,yycolumn,yychar)) ; yybegin(HCLATTRIBUTEVALUE); System.out.println("Starting Tuple");  }
+  :                 { ((ComputedTuple)currentBlock).appendChild(new ForSource(yyline,yycolumn,yychar)) ; yybegin(HCLATTRIBUTEVALUE); }
   [\]]              { exitAttribute(true);  }
   {IfPrimitive}                { startForConditional(); }
   {Conditional}                  { yybegin(HCLATTRIBUTEVALUE);  yypushback(yylength()); }
