@@ -242,6 +242,28 @@ test = {"list": [1,2,3,[4,5,6]], name: "David Estes", info: { firstName: "David"
 		results.variable.test.list.size() == 4
 	}
 
+//	void "should handle references of resource by array" () {
+//
+//		given:
+//		def hcl = '''
+//resource "something" "here" {
+//    count = 1
+//    name  = "bobby"
+//  }
+//
+//resource "something" "there" {
+//	count = 1
+//	name  = resource.something.here[0].name
+//}
+//'''
+//		HCLParser parser = new HCLParser();
+//		when:
+//		def results  = parser.parse(hcl)
+//
+//		then:
+//		results.resource.something.there.name == "bobby"
+//}
+
 
 	void "should handle multiple locals{} blocks for context"() {
 		given:
@@ -863,6 +885,23 @@ test3 = substr("hello world", 6, 10)
 		results.test3 == "world"
 	}
 
+	void "regexall should function correctly"() {
+		given:
+		def hcl = '''
+test1 = regexall("[a-z]+", "1234abcd5678efgh9")
+test2 = regexall("[a-z]+", "123456789")
+test3 = regexall("[a-z]+", null)
+
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		then:
+		results.test1 == ["abcd","efgh"]
+		results.test2 == []
+		results.test3 == []
+	}
+
 
 	void "it should handle conditional expressions"() {
 		given:
@@ -1151,6 +1190,22 @@ swagger_path_method_parameters = [for my_value in [0,1,2,3]: my_value + 1 ]
 		println results
 		then:
 		results.locals["swagger_path_method_parameters"] == [1,2,3,4]
+	}
+
+	void "it should handle nested arrays in for tuples"() {
+		given:
+		def hcl = '''
+locals {
+my_array = [{name: "abc1"},{name: "abc2"},{name: "abc3"}]
+my_result = [for res in local.my_array : regexall("[0-9]+$", res.name)[0]]
+	}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results = parser.parse(hcl)
+		println results
+		then:
+		results.locals["my_result"] == ["1","2","3"]
 	}
 
 

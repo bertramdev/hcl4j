@@ -546,7 +546,7 @@ AssignmentExpression = [^]
 
 <EVALUATEDEXPRESSION> {
 
-  {FunctionCall}             {startFunction(); }
+  {FunctionCall}             {startVariableTree(); }
   {IdentifierTree}           { startVariableTree(); }
   \}                             { yypushback(yylength()); exitAttribute(true);  }
   {LineTerminator}               { if(currentBlock instanceof HCLAttribute) {exitAttribute(true); }}
@@ -559,7 +559,7 @@ AssignmentExpression = [^]
 }
 
 <VARIABLETREE> {
-    {FunctionCall}                 {startFunction(); }
+    {FunctionCall}                 { startFunction(); }
     {Identifier}                   { currentBlock.appendChild(new Variable(yytext(),yyline,yycolumn,yychar)); }
     {WholeNumber}                  { startArray(); currentBlock.appendChild(new HCLValue("number",yytext(),yyline,yycolumn,yychar));exitAttribute(true); }
     \[                             { startArray(); }
@@ -594,7 +594,7 @@ AssignmentExpression = [^]
 }
 
 <FORTUPLEEXPRESSION> {
-  :                 { ((ComputedTuple)currentBlock).appendChild(new ForSource(yyline,yycolumn,yychar)) ; yybegin(HCLATTRIBUTEVALUE);  }
+  :                 { ((ComputedTuple)currentBlock).appendChild(new ForSource(yyline,yycolumn,yychar)) ; yybegin(HCLATTRIBUTEVALUE); System.out.println("Starting Tuple");  }
   [\]]              { exitAttribute(true);  }
   {IfPrimitive}                { startForConditional(); }
   {Conditional}                  { yybegin(HCLATTRIBUTEVALUE);  yypushback(yylength()); }

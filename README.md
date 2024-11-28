@@ -16,12 +16,16 @@ Using gradle one can include the hcl4j dependency like so:
 
 ```groovy
 dependencies {
-	compile "com.bertramlabs.plugins:hcl4j:0.9.1"
+	compile "com.bertramlabs.plugins:hcl4j:0.9.4"
 }
 ```
 
 ## What's New
 
+* **0.9.6** Function result accessor with . or []
+* **0.9.5** Adding support for regexall method
+* **0.9.4** Fixing concurrent modification exception on data lookup
+* **0.9.3** Added missing methods for array manipulation such as flatten and try
 * **0.9.1** Remove annoying Nested Map Debug Log
 * **0.9.0** HCL Tuple for loop nested improvements. String escapes fixed. anytrue and alltrue methods added.
 * **0.8.0** HCL For Loop Tuples now evaluated.
