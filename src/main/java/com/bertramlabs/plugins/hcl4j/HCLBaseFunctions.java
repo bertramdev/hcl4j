@@ -162,7 +162,7 @@ public class HCLBaseFunctions {
         });
 
         parser.registerFunction("startswith", (arguments) -> {
-            if(arguments.size() == 2) {
+            if(arguments.size() == 2 && arguments.get(0) != null && arguments.get(1) != null) {
                 String prefix = (String)(arguments.get(1));
                 String value = (String)(arguments.get(0));
                 return value.startsWith(prefix);
