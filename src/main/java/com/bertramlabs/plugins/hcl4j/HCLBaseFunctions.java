@@ -39,6 +39,14 @@ public class HCLBaseFunctions {
             return null;
         });
 
+        //TODO: Implement this function
+//        parser.registerFunction("can", (arguments) -> {
+//            if(arguments.size() > 0 && arguments.get(0) != null) {
+//                return arguments.get(0) != null;
+//            }
+//            return false;
+//        });
+
         parser.registerFunction("format", (arguments) -> {
             if(arguments.size() > 0  && arguments.get(0) != null) {
                 String val = arguments.get(0).toString();

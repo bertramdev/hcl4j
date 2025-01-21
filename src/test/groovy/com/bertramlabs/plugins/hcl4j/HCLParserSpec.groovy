@@ -902,6 +902,26 @@ test3 = regexall("[a-z]+", null)
 		results.test3 == []
 	}
 
+//	void "can should function correctly"() {
+//		given:
+//		def hcl = '''
+//locals {
+//  foo = {
+//  	bar = "baz"
+//  	boop = null
+//  }
+//}
+//test1 = can(local.foo.bar)
+//test2 = can(local.foo.boop)
+//'''
+//		HCLParser parser = new HCLParser();
+//		when:
+//		def results = parser.parse(hcl)
+//		then:
+//		results.test1 == true
+//		results.test2 == false
+//	}
+
 
 	void "it should handle conditional expressions"() {
 		given:

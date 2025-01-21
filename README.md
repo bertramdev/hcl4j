@@ -22,6 +22,7 @@ dependencies {
 
 ## What's New
 
+* **0.9.8** Fix NPE in startswith condition if no default is provided
 * **0.9.7** Fixed issue with ?: conditional expression didnt have whitespace
 * **0.9.6** Function result accessor with . or []
 * **0.9.5** Adding support for regexall method
