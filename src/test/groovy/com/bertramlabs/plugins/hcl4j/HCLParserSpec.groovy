@@ -1757,6 +1757,46 @@ resource "aws_instance" "bw-instance-1" {
 	results.resource["aws_instance"]["bw-instance-1"] != null
 
 	}
+
+	void "should parse startswith correctly if no default is provided from hcl"() {
+		given:
+
+		def hcl = '''
+variable "server_id" {
+  type        = string
+  description = "Server ID"
+  validation {
+    condition     = length(var.server_id) == 19
+    error_message = "Server ID must be 19 characters long"
+  }
+  validation {
+    condition     = startswith(var.server_id, "s-")
+    error_message = "Server ID must start with 's-'"
+  }
+  validation {
+    condition     = lower(var.server_id) == var.server_id
+    error_message = "Server ID must be lowercase"
+  }
+}
+'''
+		HCLParser parser = new HCLParser();
+		when:
+		def results  = parser.parse(hcl)
+		then:
+		results.containsKey('variable')
+		results.variable.containsKey("server_id")
+		results.variable.server_id.type.name == "string"
+		results.variable.server_id.description == "Server ID"
+		results.variable.server_id.validation.size() == 3
+		results.variable.server_id.validation[0].condition == false
+		results.variable.server_id.validation[0].error_message == "Server ID must be 19 characters long"
+		results.variable.server_id.validation[1].condition == null
+		results.variable.server_id.validation[1].error_message == "Server ID must start with 's-'"
+		results.variable.server_id.validation[2].condition == true
+		results.variable.server_id.validation[2].error_message == "Server ID must be lowercase"
+
+	}
+
 }
 
 
