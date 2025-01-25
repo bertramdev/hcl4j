@@ -392,7 +392,7 @@ default = ["subnet-72b9162b"]
  		def results = parser.parse(hcl)
  		then:
  		results.resource.aws_instance.test.tags.Date != null
- 		
+
 	}
 
 
@@ -1797,7 +1797,35 @@ variable "server_id" {
 
 	}
 
+	void "should parse can and regex"() {
+        given:
+        def hcl = '''
+variable "server_id" {
+    type        = string
+    description = "Server ID"
+    default 	= "abcabcabc"
+    validation {
+        condition = can(var.foo.boop)
+    }
+    validation {
+        condition = can(var.server_id)
+    }
+	validation {
+        condition = regex("ab", var.server_id)
+    }
+    validation {
+        condition = regexall("ab", var.server_id)
+    }
+  }'''
+        HCLParser parser = new HCLParser();
+        when:
+        def results = parser.parse(hcl)
+        then:
+        results.containsKey('variable')
+		results.variable.server_id.validation.size() == 4
+		results.variable.server_id.validation[0].condition == false
+		results.variable.server_id.validation[1].condition == true
+		results.variable.server_id.validation[2].condition == "ab"
+		results.variable.server_id.validation[3].condition == ["ab","ab","ab"]
+    }
 }
-
-
-

@@ -106,6 +106,19 @@ public class HCLBaseFunctions {
             return null;
         });
 
+        parser.registerFunction("regex", (arguments) -> {
+            if(arguments.size() > 1 && arguments.get(0) != null ) {
+                String str = arguments.get(1) != null ? arguments.get(1).toString() : "";
+                Pattern regex = Pattern.compile(arguments.get(0).toString());
+                Matcher matcher = regex.matcher(str);
+                //convert match list to array of results
+                if(matcher.find()) {
+                    return matcher.group();
+                }
+            }
+            return null;
+        });
+
         parser.registerFunction("contains", (arguments) -> {
             if(arguments.size() == 2) {
                 if(arguments.get(0) instanceof Collection) {
@@ -144,7 +157,6 @@ public class HCLBaseFunctions {
                     } catch(ClassCastException ex) {
                         return null;
                     }
-                    
             } else {
                 return null; //Invalid Function Spec
             }
@@ -237,6 +249,16 @@ public class HCLBaseFunctions {
             }
             return null;
         });
+
+        parser.registerFunction("can", (arguments) -> {
+            for(Object argument : arguments) {
+                if(argument != null) {
+                    return true;
+                }
+            }
+            return false;
+        });
+
 
         registerNumericFunctions(parser);
         registerCollectionFunctions(parser);
@@ -538,7 +560,7 @@ public class HCLBaseFunctions {
                     byte[] decodedBytes = Base64.getDecoder().decode(content);
                     return new String(decodedBytes,StandardCharsets.UTF_8);
                 }
-                
+
             }
             return null;
         });
@@ -564,7 +586,7 @@ public class HCLBaseFunctions {
                     byte[] decodedBytes = Base64.getDecoder().decode(content);
                     return new String(decodedBytes,Charset.forName(encoding));
                 }
-                
+
             }
             return null;
         });
