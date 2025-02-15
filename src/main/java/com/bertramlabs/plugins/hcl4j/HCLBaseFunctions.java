@@ -191,7 +191,7 @@ public class HCLBaseFunctions {
         });
 
         parser.registerFunction("substr", (arguments) -> {
-            if(arguments.size() == 3) {
+            if(arguments.size() == 3 && arguments.get(0) != null) {
                 Double offset = (Double)(arguments.get(1));
                 Double length  = (Double)(arguments.get(2));
                 String value = (String)(arguments.get(0));
